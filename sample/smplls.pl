@@ -38,11 +38,11 @@ sub PrnItem($$\$$) {
 			$raDate->[2], $raDate->[1],   $raDate->[0]) : "";
   }
 # Display
-  printf ("%02d %-50s %-4s %s\n", 
+  printf "%02d %-50s %-4s %s\n", 
 			${$iTtl}++,
 			$sName,
 			$sPpsName{$oPps->{Type}},
-			$sDate);
+			$sDate;
 # For its Children
   my $iDirN=1;
   foreach my $iItem (@{$oPps->{Child}}) {
