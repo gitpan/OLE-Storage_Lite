@@ -1,40 +1,47 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.09  Fri May 25  6:00:00 2001
+    - Fix small size problem
+          Thank you, Thomas Schachner and John McNamara
+
+    - Fix RootEntry -> Root Entry
+          Thank you, Joergen von Bargen
+
 0.08  Thu Mar 1  22:30:00 2001
-	- Fix case insensitive version for getPpsSearch
+    - Fix case insensitive version for getPpsSearch
           Thank you, yusuf_najmuddin and sorry Punam Chordia.
-	- Add IO::Scalar prerequire to Makefile.PL
+    - Add IO::Scalar prerequire to Makefile.PL
           Thank you, J. David Blackstone.
-	- Add newFile and append methond to Pps::File
+    - Add newFile and append methond to Pps::File
                                        by Kawai Takanori
 
 0.07  Thu Feb  22 9:00:00 2001
-	- Add case insensitive version for getPpsSearch
+    - Add case insensitive version for getPpsSearch
                                        by Kawai Takanori
           Thank you, Punam Chordia.
-	- Modify save Big file
+    - Modify save Big file
                                        by Kawai Takanori
           Thank you, Bill White.
 
 0.06  Thu Feb  2 12:00:00 2001
-	- Add referrence of scalar and IO::File object support
+    - Add referrence of scalar and IO::File object support
                                        by Kawai Takanori
             Thank you, Jeff Haferman
 
 0.05  Thu Jan  4 14:00:00 2001
-	- Modified Minor mistakes by Kawai Takanori
+    - Modified Minor mistakes by Kawai Takanori
             Thank you, Hao Huang and Ian Penman
 
 0.04  Wed Dec  6 11:00:00 2000
-	- Modified Minor mistakes by Kawai Takanori
+    - Modified Minor mistakes by Kawai Takanori
             Thank you, Anthony Brock.
 
 0.03  Wed Nov  14 10:00:00 2000
-	- Modified Minor mistakes by Kawai Takanori
+    - Modified Minor mistakes by Kawai Takanori
 
 0.02  Wed Nov  8 21:00:00 2000
-	- Added STDOUT; created by Kawai Takanori
+    - Added STDOUT; created by Kawai Takanori
 
 0.01  Sat Nov  4 16:00:00 2000
-	- original version; created by Kawai Takanori
+    - original version; created by Kawai Takanori
 

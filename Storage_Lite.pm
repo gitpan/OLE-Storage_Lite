@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.08;
+$VERSION = 0.09;
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -104,6 +104,7 @@ sub _makeSmallData($$$) {
       #Check for update
       if($oPps->{_PPS_FILE}) {
         my $sBuff;
+        $oPps->{_PPS_FILE}->seek(0, 0); #To The Top
         while($oPps->{_PPS_FILE}->read($sBuff, 4096)) {
             $sRes .= $sBuff;
         }
@@ -173,7 +174,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.08;
+$VERSION = 0.09;
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -184,7 +185,7 @@ sub new ($;$$$) {
     OLE::Storage_Lite::PPS::_new(
         $sClass,
         undef, 
-        OLE::Storage_Lite::Asc2Ucs('RootEntry'),
+        OLE::Storage_Lite::Asc2Ucs('Root Entry'),
         5,
         undef,
         undef,
@@ -402,10 +403,10 @@ sub _saveBigData($$$$) {
             #Check for update
             if($oPps->{_PPS_FILE}) {
                 my $sBuff;
-				my $iLen = 0;
-				$oPps->{_PPS_FILE}->seek(0, 0);	#To The Top
+                my $iLen = 0;
+                $oPps->{_PPS_FILE}->seek(0, 0); #To The Top
                 while($oPps->{_PPS_FILE}->read($sBuff, 4096)) {
-					$iLen += length($sBuff);
+                    $iLen += length($sBuff);
                     $FILE->print($sBuff);           #Check for update
                 }
             }
@@ -452,17 +453,124 @@ sub _savePps($$$)
 sub _savePpsSetPnt2($$$) 
 {
   my($aThis, $raList, $rhInfo) = @_;
-#1. make Array as if PPSs Setting
-  foreach my $rPps (@$aThis) {
-    $raList->[$rPps->{No}] = $rPps;
-    _savePpsSetPnt2($rPps->{Child}, $raList, $rhInfo)
-            if ($rPps->{Child}) ;
+#1. make Array as Children-Relations
+#1.1 if No Children
+  if($#$aThis < 0) {
+      return 0xFFFFFFFF;
+  }
+  elsif($#$aThis == 0) {
+#1.2 Just Only one
+      push @$raList, $aThis->[0];
+      $aThis->[0]->{No} = $#$raList;
+      $aThis->[0]->{PrevPps} = 0xFFFFFFFF;
+      $aThis->[0]->{NextPps} = 0xFFFFFFFF;
+      $aThis->[0]->{DirPps} = _savePpsSetPnt2($aThis->[0]->{Child}, $raList, $rhInfo);
+      return $aThis->[0]->{No};
+  }
+  else {
+#1.3 Array
+      my $iCnt = $#$aThis + 1;
+#1.3.1 Define Center
+      my $iPos = 0; #int($iCnt/ 2);     #$iCnt 
+
+      my @aWk = @$aThis;
+      my @aPrev = ($#$aThis > 1)? splice(@aWk, 1, 1) : (); #$iPos);
+      my @aNext = splice(@aWk, 1); #, $iCnt - $iPos -1);
+      $aThis->[$iPos]->{PrevPps} = _savePpsSetPnt2(
+            \@aPrev, $raList, $rhInfo);
+      push @$raList, $aThis->[$iPos];
+      $aThis->[$iPos]->{No} = $#$raList;
+
+#1.3.2 Devide a array into Previous,Next
+      $aThis->[$iPos]->{NextPps} = _savePpsSetPnt2(
+            \@aNext, $raList, $rhInfo);
+      $aThis->[$iPos]->{DirPps} = _savePpsSetPnt2($aThis->[$iPos]->{Child}, $raList, $rhInfo);
+      return $aThis->[$iPos]->{No};
+  }
+}
+#------------------------------------------------------------------------------
+# _savePpsSetPnt2 (OLE::Storage_Lite::PPS::Root)
+#  For Test
+#------------------------------------------------------------------------------
+sub _savePpsSetPnt2s($$$) 
+{
+  my($aThis, $raList, $rhInfo) = @_;
+#1. make Array as Children-Relations
+#1.1 if No Children
+  if($#$aThis < 0) {
+      return 0xFFFFFFFF;
+  }
+  elsif($#$aThis == 0) {
+#1.2 Just Only one
+      push @$raList, $aThis->[0];
+      $aThis->[0]->{No} = $#$raList;
+      $aThis->[0]->{PrevPps} = 0xFFFFFFFF;
+      $aThis->[0]->{NextPps} = 0xFFFFFFFF;
+      $aThis->[0]->{DirPps} = _savePpsSetPnt2($aThis->[0]->{Child}, $raList, $rhInfo);
+      return $aThis->[0]->{No};
+  }
+  else {
+#1.3 Array
+      my $iCnt = $#$aThis + 1;
+#1.3.1 Define Center
+      my $iPos = 0; #int($iCnt/ 2);     #$iCnt 
+      push @$raList, $aThis->[$iPos];
+      $aThis->[$iPos]->{No} = $#$raList;
+      my @aWk = @$aThis;
+#1.3.2 Devide a array into Previous,Next
+      my @aPrev = splice(@aWk, 0, $iPos);
+      my @aNext = splice(@aWk, 1, $iCnt - $iPos -1);
+      $aThis->[$iPos]->{PrevPps} = _savePpsSetPnt2(
+            \@aPrev, $raList, $rhInfo);
+      $aThis->[$iPos]->{NextPps} = _savePpsSetPnt2(
+            \@aNext, $raList, $rhInfo);
+      $aThis->[$iPos]->{DirPps} = _savePpsSetPnt2($aThis->[$iPos]->{Child}, $raList, $rhInfo);
+      return $aThis->[$iPos]->{No};
   }
 }
 #------------------------------------------------------------------------------
 # _savePpsSetPnt (OLE::Storage_Lite::PPS::Root)
 #------------------------------------------------------------------------------
 sub _savePpsSetPnt($$$) 
+{
+  my($aThis, $raList, $rhInfo) = @_;
+#1. make Array as Children-Relations
+#1.1 if No Children
+  if($#$aThis < 0) {
+      return 0xFFFFFFFF;
+  }
+  elsif($#$aThis == 0) {
+#1.2 Just Only one
+      push @$raList, $aThis->[0];
+      $aThis->[0]->{No} = $#$raList;
+      $aThis->[0]->{PrevPps} = 0xFFFFFFFF;
+      $aThis->[0]->{NextPps} = 0xFFFFFFFF;
+      $aThis->[0]->{DirPps} = _savePpsSetPnt($aThis->[0]->{Child}, $raList, $rhInfo);
+      return $aThis->[0]->{No};
+  }
+  else {
+#1.3 Array
+      my $iCnt = $#$aThis + 1;
+#1.3.1 Define Center
+      my $iPos = int($iCnt/ 2);     #$iCnt 
+      push @$raList, $aThis->[$iPos];
+      $aThis->[$iPos]->{No} = $#$raList;
+      my @aWk = @$aThis;
+#1.3.2 Devide a array into Previous,Next
+      my @aPrev = splice(@aWk, 0, $iPos);
+      my @aNext = splice(@aWk, 1, $iCnt - $iPos -1);
+      $aThis->[$iPos]->{PrevPps} = _savePpsSetPnt(
+            \@aPrev, $raList, $rhInfo);
+      $aThis->[$iPos]->{NextPps} = _savePpsSetPnt(
+            \@aNext, $raList, $rhInfo);
+      $aThis->[$iPos]->{DirPps} = _savePpsSetPnt($aThis->[$iPos]->{Child}, $raList, $rhInfo);
+      return $aThis->[$iPos]->{No};
+  }
+}
+#------------------------------------------------------------------------------
+# _savePpsSetPnt (OLE::Storage_Lite::PPS::Root)
+#------------------------------------------------------------------------------
+sub _savePpsSetPnt1($$$) 
 {
   my($aThis, $raList, $rhInfo) = @_;
 #1. make Array as Children-Relations
@@ -586,7 +694,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.08;
+$VERSION = 0.09;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -628,26 +736,26 @@ sub newFile ($$;$) {
         '',
         undef);
 #
-	if((!defined($sFile)) or ($sFile eq '')) {
-	    $oSelf->{_PPS_FILE} = IO::File->new_tmpfile();
-	}
+    if((!defined($sFile)) or ($sFile eq '')) {
+        $oSelf->{_PPS_FILE} = IO::File->new_tmpfile();
+    }
     elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
-	    $oSelf->{_PPS_FILE} = $sFile;
-	}
-	elsif(!ref($sFile)) {
-		#File Name
-    	$oSelf->{_PPS_FILE} = new IO::File;
-	    return undef unless($oSelf->{_PPS_FILE});
+        $oSelf->{_PPS_FILE} = $sFile;
+    }
+    elsif(!ref($sFile)) {
+        #File Name
+        $oSelf->{_PPS_FILE} = new IO::File;
+        return undef unless($oSelf->{_PPS_FILE});
         $oSelf->{_PPS_FILE}->open("$sFile", "r+") || return undef;
-	}
-	else {
-		return undef;
-	}
-	if($oSelf->{_PPS_FILE}) {
-		$oSelf->{_PPS_FILE}->seek(0, 2);
-		binmode($oSelf->{_PPS_FILE});
-	    $oSelf->{_PPS_FILE}->autoflush(1);
-	}
+    }
+    else {
+        return undef;
+    }
+    if($oSelf->{_PPS_FILE}) {
+        $oSelf->{_PPS_FILE}->seek(0, 2);
+        binmode($oSelf->{_PPS_FILE});
+        $oSelf->{_PPS_FILE}->autoflush(1);
+    }
     return $oSelf;
 }
 #------------------------------------------------------------------------------
@@ -655,12 +763,12 @@ sub newFile ($$;$) {
 #------------------------------------------------------------------------------
 sub append ($$) {
     my($oSelf, $sData) = @_;
-	if($oSelf->{_PPS_FILE}) {
-    	$oSelf->{_PPS_FILE}->print($sData);
-	}
-	else {
-		$oSelf->{Data} .= $sData;
-	}
+    if($oSelf->{_PPS_FILE}) {
+        $oSelf->{_PPS_FILE}->print($sData);
+    }
+    else {
+        $oSelf->{Data} .= $sData;
+    }
 }
 
 #//////////////////////////////////////////////////////////////////////////////
@@ -674,7 +782,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.08;
+$VERSION = 0.09;
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -702,7 +810,7 @@ use IO::File;
 use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.08;
+$VERSION = 0.09;
 sub _getPpsSearch($$$$$);
 sub _getPpsTree($$$);
 #------------------------------------------------------------------------------
@@ -804,6 +912,7 @@ sub _getPpsTree($$$) {
   my $iRootBlock = $rhInfo->{_ROOT_START} ;
 #1. Get Information about itself
   my $oPps = _getNthPps($iNo, $rhInfo, $bData);
+print "NO:$iNo ", $oPps->{PrevPps}, " : ", $oPps->{NextPps}, "\n";
 #2. Child
   if($oPps->{DirPps} !=  0xFFFFFFFF) {
     my @aChildL = _getPpsTree($oPps->{DirPps}, $rhInfo, $bData);
