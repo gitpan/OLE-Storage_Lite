@@ -8,10 +8,7 @@ DESCRIPTION
     Macintosh platforms.
 
 REQUIREMENT
-        This module requires these modules:
-                IO::Handle  (included in IO)
-                IO::File    (included in IO)
-                IO::Scalar  (included in IO::Stringy)
+     Perl 5.005 or later.
 
 INSTALLATION
     The module can be installed using the standard Perl procedure:

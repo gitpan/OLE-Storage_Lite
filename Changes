@@ -1,5 +1,16 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.14  Mon Nov 8  14:00:00 2004
+
+    - Return filehandle close() value to caller. Spotted in
+      Spreadsheet::WriteExcel::Big by Edward James and
+      Reidar Johansen.
+
+    - Changed IO::Scalar from a "use" to a "require" and removed
+      the Makefile dependency to make H. Merijn Brand's life easier
+      for some reason. :-)
+
+
 0.13  Sun Aug 1  13:00:00 2004
 
     - Allowed use of user defined filehandles. This should make the

@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -168,13 +168,12 @@ sub _savePpsWk($$)
 package OLE::Storage_Lite::PPS::Root;
 require Exporter;
 use strict;
-use IO::Scalar;
 use IO::File;
 use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.13';
+$VERSION = '0.14';
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -213,24 +212,22 @@ sub save($$;$$) {
   $rhInfo->{_SMALL_SIZE} = 0x1000;
   $rhInfo->{_PPS_SIZE} = 0x80;
 
-  my $closeFile = undef;
+  my $closeFile = 1;
 
   #1.Open File
   #1.1 $sFile is Ref of scalar
   if(ref($sFile) eq 'SCALAR') {
+    require IO::Scalar;
     my $oIo = new IO::Scalar $sFile, O_WRONLY;
     $rhInfo->{_FILEH_} = $oIo;
-    $closeFile = 1;
   }
   #1.1.1 $sFile is a IO::Scalar object
-  elsif(UNIVERSAL::isa($sFile, 'IO::Scalar')) {
-    $rhInfo->{_FILEH_} = $sFile;
-  }
+  # Now handled as a filehandle ref below.
+
   #1.2 $sFile is a IO::Handle object
   elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
     binmode($sFile);
     $rhInfo->{_FILEH_} = $sFile;
-    $closeFile = 1;
   }
   #1.3 $sFile is a simple filename string
   elsif(!ref($sFile)) {
@@ -245,7 +242,6 @@ sub save($$;$$) {
         $oIo->fdopen(fileno(STDOUT),"w") || return undef;
         binmode($oIo);
         $rhInfo->{_FILEH_} = $oIo;
-        $closeFile = 1;
     }
   }
   #1.4 Assume that if $sFile is a ref then it is a valid filehandle
@@ -253,7 +249,7 @@ sub save($$;$$) {
     # Not all filehandles support binmode() so try it in an eval.
     eval{ binmode $sFile };
     $rhInfo->{_FILEH_} = $sFile;
-    # Caller control filehandle
+    # Caller controls filehandle closing
     $closeFile = 0;
   }
 
@@ -286,7 +282,7 @@ sub save($$;$$) {
   $oThis->_saveBbd($iSBDcnt, $iBBcnt, $iPPScnt,  $rhInfo);
 
   #7.Close File
-  $rhInfo->{_FILEH_}->close if $closeFile;
+  return $rhInfo->{_FILEH_}->close if $closeFile;
 }
 #------------------------------------------------------------------------------
 # _calcSize (OLE::Storage_Lite::PPS)
@@ -716,7 +712,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.13';
+$VERSION = '0.14';
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -804,7 +800,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.13';
+$VERSION = '0.14';
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -829,10 +825,9 @@ package OLE::Storage_Lite;
 require Exporter;
 use strict;
 use IO::File;
-use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = '0.13';
+$VERSION = '0.14';
 sub _getPpsSearch($$$$$;$);
 sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------
@@ -906,6 +901,7 @@ sub _initParse($) {
   my $oIo;
   #1. $sFile is Ref of scalar
   if(ref($sFile) eq 'SCALAR') {
+    require IO::Scalar;
     $oIo = new IO::Scalar;
     $oIo->open($sFile);
   }
@@ -1692,6 +1688,8 @@ First of all, I would like to acknowledge to Martin Schwartz and his module OLE:
 =head1 AUTHOR
 
 Kawai Takanori kwitknr@cpan.org
+
+Currently maintained by John McNamara jmcnamara@cpan.org
 
 =head1 SEE ALSO
 
