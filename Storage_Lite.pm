@@ -14,29 +14,29 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
 #------------------------------------------------------------------------------
 sub new ($$$$$$$$$$;$$) {
 #1. Constructor for General Usage
-  my($sClass, $iNo, $sNm, $iType, $iPrev, $iNext, $iDir, 
+  my($sClass, $iNo, $sNm, $iType, $iPrev, $iNext, $iDir,
      $raTime1st, $raTime2nd, $iStart, $iSize, $sData, $raChild) = @_;
 
   if($iType == OLE::Storage_Lite::PpsType_File()) { #FILE
     return OLE::Storage_Lite::PPS::File->_new
-        ($iNo, $sNm, $iType, $iPrev, $iNext, $iDir, $raTime1st, $raTime2nd, 
+        ($iNo, $sNm, $iType, $iPrev, $iNext, $iDir, $raTime1st, $raTime2nd,
          $iStart, $iSize, $sData, $raChild);
   }
   elsif($iType == OLE::Storage_Lite::PpsType_Dir()) { #DIRECTRY
     return OLE::Storage_Lite::PPS::Dir->_new
-        ($iNo, $sNm, $iType, $iPrev, $iNext, $iDir, $raTime1st, $raTime2nd, 
+        ($iNo, $sNm, $iType, $iPrev, $iNext, $iDir, $raTime1st, $raTime2nd,
          $iStart, $iSize, $sData, $raChild);
   }
   elsif($iType == OLE::Storage_Lite::PpsType_Root()) { #ROOT
     return OLE::Storage_Lite::PPS::Root->_new
-        ($iNo, $sNm, $iType, $iPrev, $iNext, $iDir, $raTime1st, $raTime2nd, 
+        ($iNo, $sNm, $iType, $iPrev, $iNext, $iDir, $raTime1st, $raTime2nd,
          $iStart, $iSize, $sData, $raChild);
   }
   else {
@@ -48,12 +48,12 @@ sub new ($$$$$$$$$$;$$) {
 #   for OLE::Storage_Lite
 #------------------------------------------------------------------------------
 sub _new ($$$$$$$$$$$;$$) {
-  my($sClass, $iNo, $sNm, $iType, $iPrev, $iNext, $iDir, 
+  my($sClass, $iNo, $sNm, $iType, $iPrev, $iNext, $iDir,
         $raTime1st, $raTime2nd, $iStart, $iSize, $sData, $raChild) = @_;
 #1. Constructor for OLE::Storage_Lite
   my $oThis = {
-    No   => $iNo, 
-    Name => $sNm, 
+    No   => $iNo,
+    Name => $sNm,
     Type => $iType,
     PrevPps => $iPrev,
     NextPps => $iNext,
@@ -112,7 +112,7 @@ sub _makeSmallData($$$) {
       else {
         $sRes .= $oPps->{Data};
       }
-      $sRes .= ("\x00" x 
+      $sRes .= ("\x00" x
         ($rhInfo->{_SMALL_BLOCK_SIZE} - ($oPps->{Size}% $rhInfo->{_SMALL_BLOCK_SIZE})))
         if($oPps->{Size}% $rhInfo->{_SMALL_BLOCK_SIZE});
       #1.3 Set for PPS
@@ -130,13 +130,13 @@ sub _makeSmallData($$$) {
 #------------------------------------------------------------------------------
 # _savePpsWk (OLE::Storage_Lite::PPS)
 #------------------------------------------------------------------------------
-sub _savePpsWk($$) 
+sub _savePpsWk($$)
 {
   my($oThis, $rhInfo) = @_;
 #1. Write PPS
   my $FILE = $rhInfo->{_FILEH_};
   $FILE->print(
-            $oThis->{Name} 
+            $oThis->{Name}
             . ("\x00" x (64 - length($oThis->{Name})))  #64
             , pack("v", length($oThis->{Name}) + 2)     #66
             , pack("c", $oThis->{Type})         #67
@@ -151,7 +151,7 @@ sub _savePpsWk($$)
             , "\x00\x00\x00\x00"                #100
             , OLE::Storage_Lite::LocalDate2OLE($oThis->{Time1st})       #108
             , OLE::Storage_Lite::LocalDate2OLE($oThis->{Time2nd})       #116
-            , pack("V", defined($oThis->{StartBlock})? 
+            , pack("V", defined($oThis->{StartBlock})?
                       $oThis->{StartBlock}:0)       #116
             , pack("V", defined($oThis->{Size})?
                  $oThis->{Size} : 0)            #124
@@ -184,7 +184,7 @@ sub new ($;$$$) {
     my($sClass, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
         $sClass,
-        undef, 
+        undef,
         OLE::Storage_Lite::Asc2Ucs('Root Entry'),
         5,
         undef,
@@ -205,24 +205,32 @@ sub save($$;$$) {
 #0.Initial Setting for saving
   $rhInfo = {} unless($rhInfo);
   $rhInfo->{_BIG_BLOCK_SIZE}  = 2**
-                (($rhInfo->{_BIG_BLOCK_SIZE})?   
+                (($rhInfo->{_BIG_BLOCK_SIZE})?
                     _adjust2($rhInfo->{_BIG_BLOCK_SIZE})  : 9);
-  $rhInfo->{_SMALL_BLOCK_SIZE}= 2 ** 
-                (($rhInfo->{_SMALL_BLOCK_SIZE})? 
+  $rhInfo->{_SMALL_BLOCK_SIZE}= 2 **
+                (($rhInfo->{_SMALL_BLOCK_SIZE})?
                     _adjust2($rhInfo->{_SMALL_BLOCK_SIZE}): 6);
   $rhInfo->{_SMALL_SIZE} = 0x1000;
   $rhInfo->{_PPS_SIZE} = 0x80;
+
+  my $closeFile = undef;
 
 #1.Open File
 #1.1 $sFile is Ref of scalar
   if(ref($sFile) eq 'SCALAR') {
     my $oIo = new IO::Scalar $sFile, O_WRONLY;
     $rhInfo->{_FILEH_} = $oIo;
+    $closeFile = 1;
+  }
+#1.1.1 $sFile is a IO::Scalar object
+  elsif(UNIVERSAL::isa($sFile, 'IO::Scalar')) {
+    $rhInfo->{_FILEH_} = $sFile;
   }
 #1.2 $sFile is a IO::Handle object
   elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
     binmode($sFile);
     $rhInfo->{_FILEH_} = $sFile;
+    $closeFile = 1;
   }
 #1.3 $sFile is a simple filename string
   elsif(!ref($sFile)) {
@@ -237,10 +245,11 @@ sub save($$;$$) {
         $oIo->fdopen(fileno(STDOUT),"w") || return undef;
         binmode($oIo);
         $rhInfo->{_FILEH_} = $oIo;
+        $closeFile = 1;
     }
   }
 #1.4 Others
-  else {  
+  else {
     return undef;
   }
 
@@ -267,14 +276,14 @@ sub save($$;$$) {
 #5. Write PPS
   $oThis->_savePps(\@aList, $rhInfo);
 #6. Write BD and BDList and Adding Header informations
-  $oThis->_saveBbd($iSBDcnt, $iBBcnt, $iPPScnt,  $rhInfo); 
+  $oThis->_saveBbd($iSBDcnt, $iBBcnt, $iPPScnt,  $rhInfo);
 #7.Close File
-  $rhInfo->{_FILEH_}->close unless($sFile ne '-');
+  $rhInfo->{_FILEH_}->close if $closeFile;
 }
 #------------------------------------------------------------------------------
 # _calcSize (OLE::Storage_Lite::PPS)
 #------------------------------------------------------------------------------
-sub _calcSize($$) 
+sub _calcSize($$)
 {
   my($oThis, $raList, $rhInfo) = @_;
 
@@ -282,7 +291,6 @@ sub _calcSize($$)
   my ($iSBDcnt, $iBBcnt, $iPPScnt) = (0,0,0);
   my $iSmallLen = 0;
   my $iSBcnt = 0;
-
   foreach my $oPps (@$raList) {
       if($oPps->{Type}==OLE::Storage_Lite::PpsType_File()) {
         $oPps->{Size} = $oPps->_DataLen();  #Mod
@@ -291,7 +299,7 @@ sub _calcSize($$)
                           + (($oPps->{Size} % $rhInfo->{_SMALL_BLOCK_SIZE})? 1: 0);
         }
         else {
-          $iBBcnt += 
+          $iBBcnt +=
             (int($oPps->{Size}/ $rhInfo->{_BIG_BLOCK_SIZE}) +
                 (($oPps->{Size}% $rhInfo->{_BIG_BLOCK_SIZE})? 1: 0));
         }
@@ -305,7 +313,6 @@ sub _calcSize($$)
   my $iCnt = scalar(@$raList);
   my $iBdCnt = $rhInfo->{_BIG_BLOCK_SIZE}/OLE::Storage_Lite::PpsSize();
   $iPPScnt = (int($iCnt/$iBdCnt) + (($iCnt % $iBdCnt)? 1: 0));
-
   return ($iSBDcnt, $iBBcnt, $iPPScnt);
 }
 #------------------------------------------------------------------------------
@@ -327,25 +334,27 @@ sub _saveHeader($$$$$) {
 #0. Calculate Basic Setting
   my $iBlCnt = $rhInfo->{_BIG_BLOCK_SIZE} / OLE::Storage_Lite::LongIntSize();
   my $i1stBdL = ($rhInfo->{_BIG_BLOCK_SIZE} - 0x4C) / OLE::Storage_Lite::LongIntSize();
-
+  my $i1stBdMax = $i1stBdL * $iBlCnt  - $i1stBdL;
   my $iBdExL = 0;
   my $iAll = $iBBcnt + $iPPScnt + $iSBDcnt;
   my $iAllW = $iAll;
   my $iBdCntW = int($iAllW / $iBlCnt) + (($iAllW % $iBlCnt)? 1: 0);
-  my $iBdCnt = int(($iAll + $iBdCntW) / $iBlCnt) + ((($iAllW+$iBdCntW) % $iBlCnt)? 1: 0);
+  my $iBdCnt = 0;
   my $i;
-
 #0.1 Calculate BD count
-  if ($iBdCnt >$i1stBdL) {
+  $iBlCnt--; #the BlCnt is reduced in the count of the last sect is used for a pointer the next Bl
+  my $iBBleftover = $iAll - $i1stBdMax;
+  if ($iAll >$i1stBdMax) {
+
     while(1) {
-      $iBdExL++;
-      $iAllW++;
-      $iBdCntW = int($iAllW / $iBlCnt) + (($iAllW % $iBlCnt)? 1: 0);
-#      $iBdCnt = int(($iAllW + $iBdCntW) / $iBlCnt) + ((($iAllW+$iBdCntW) % $iBlCnt)? 1: 0);
-      $iBdCnt = int(($iAllW + $iBdCntW) / $iBlCnt) + 1;
-      last if($iBdCnt <= ($iBdExL*$iBlCnt+ $i1stBdL));
+      $iBdCnt = int(($iBBleftover) / $iBlCnt) + ((($iBBleftover) % $iBlCnt)? 1: 0);
+      $iBdExL = int(($iBdCnt) / $iBlCnt) + ((($iBdCnt) % $iBlCnt)? 1: 0);
+      $iBBleftover = $iBBleftover + $iBdExL;
+      last if($iBdCnt == (int(($iBBleftover) / $iBlCnt) + ((($iBBleftover) % $iBlCnt)? 1: 0)));
     }
   }
+  $iBdCnt += $i1stBdL;
+  #print "iBdCnt = $iBdCnt \n";
 
 #1.Save Header
   $FILE->print(
@@ -358,7 +367,7 @@ sub _saveHeader($$$$$) {
             , pack("v", 6)
             , pack("v", 0)
             , "\x00\x00\x00\x00" x 2
-            , pack("V", $iBdCnt), 
+            , pack("V", $iBdCnt),
             , pack("V", $iBBcnt+$iSBDcnt), #ROOT START
             , pack("V", 0)
             , pack("V", 0x1000)
@@ -366,11 +375,11 @@ sub _saveHeader($$$$$) {
             , pack("V", 1)
     );
 #2. Extra BDList Start, Count
-  if($iBdCnt < $i1stBdL) {
+  if($iAll <= $i1stBdMax) {
     $FILE->print(
                 pack("V", -2),      #Extra BDList Start
                 pack("V", 0),       #Extra BDList Count
-        );       
+        );
   }
   else {
     $FILE->print(
@@ -415,13 +424,13 @@ sub _saveBigData($$$$) {
                 $FILE->print($oPps->{Data});
             }
             $FILE->print(
-                        "\x00" x 
-                        ($rhInfo->{_BIG_BLOCK_SIZE} - 
+                        "\x00" x
+                        ($rhInfo->{_BIG_BLOCK_SIZE} -
                             ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE}))
                     ) if ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE});
             #1.2 Set For PPS
             $oPps->{StartBlock} = $$iStBlk;
-            $$iStBlk += 
+            $$iStBlk +=
                     (int($oPps->{Size}/ $rhInfo->{_BIG_BLOCK_SIZE}) +
                         (($oPps->{Size}% $rhInfo->{_BIG_BLOCK_SIZE})? 1: 0));
         }
@@ -431,7 +440,7 @@ sub _saveBigData($$$$) {
 #------------------------------------------------------------------------------
 # _savePps (OLE::Storage_Lite::PPS::Root)
 #------------------------------------------------------------------------------
-sub _savePps($$$) 
+sub _savePps($$$)
 {
   my($oThis, $raList, $rhInfo) = @_;
 #0. Initial
@@ -451,7 +460,7 @@ sub _savePps($$$)
 # _savePpsSetPnt2 (OLE::Storage_Lite::PPS::Root)
 #  For Test
 #------------------------------------------------------------------------------
-sub _savePpsSetPnt2($$$) 
+sub _savePpsSetPnt2($$$)
 {
   my($aThis, $raList, $rhInfo) = @_;
 #1. make Array as Children-Relations
@@ -472,7 +481,7 @@ sub _savePpsSetPnt2($$$)
 #1.3 Array
       my $iCnt = $#$aThis + 1;
 #1.3.1 Define Center
-      my $iPos = 0; #int($iCnt/ 2);     #$iCnt 
+      my $iPos = 0; #int($iCnt/ 2);     #$iCnt
 
       my @aWk = @$aThis;
       my @aPrev = ($#$aThis > 1)? splice(@aWk, 1, 1) : (); #$iPos);
@@ -493,7 +502,7 @@ sub _savePpsSetPnt2($$$)
 # _savePpsSetPnt2 (OLE::Storage_Lite::PPS::Root)
 #  For Test
 #------------------------------------------------------------------------------
-sub _savePpsSetPnt2s($$$) 
+sub _savePpsSetPnt2s($$$)
 {
   my($aThis, $raList, $rhInfo) = @_;
 #1. make Array as Children-Relations
@@ -514,7 +523,7 @@ sub _savePpsSetPnt2s($$$)
 #1.3 Array
       my $iCnt = $#$aThis + 1;
 #1.3.1 Define Center
-      my $iPos = 0; #int($iCnt/ 2);     #$iCnt 
+      my $iPos = 0; #int($iCnt/ 2);     #$iCnt
       push @$raList, $aThis->[$iPos];
       $aThis->[$iPos]->{No} = $#$raList;
       my @aWk = @$aThis;
@@ -532,7 +541,7 @@ sub _savePpsSetPnt2s($$$)
 #------------------------------------------------------------------------------
 # _savePpsSetPnt (OLE::Storage_Lite::PPS::Root)
 #------------------------------------------------------------------------------
-sub _savePpsSetPnt($$$) 
+sub _savePpsSetPnt($$$)
 {
   my($aThis, $raList, $rhInfo) = @_;
 #1. make Array as Children-Relations
@@ -553,7 +562,7 @@ sub _savePpsSetPnt($$$)
 #1.3 Array
       my $iCnt = $#$aThis + 1;
 #1.3.1 Define Center
-      my $iPos = int($iCnt/ 2);     #$iCnt 
+      my $iPos = int($iCnt/ 2);     #$iCnt
       push @$raList, $aThis->[$iPos];
       $aThis->[$iPos]->{No} = $#$raList;
       my @aWk = @$aThis;
@@ -571,7 +580,7 @@ sub _savePpsSetPnt($$$)
 #------------------------------------------------------------------------------
 # _savePpsSetPnt (OLE::Storage_Lite::PPS::Root)
 #------------------------------------------------------------------------------
-sub _savePpsSetPnt1($$$) 
+sub _savePpsSetPnt1($$$)
 {
   my($aThis, $raList, $rhInfo) = @_;
 #1. make Array as Children-Relations
@@ -592,7 +601,7 @@ sub _savePpsSetPnt1($$$)
 #1.3 Array
       my $iCnt = $#$aThis + 1;
 #1.3.1 Define Center
-      my $iPos = int($iCnt/ 2);     #$iCnt 
+      my $iPos = int($iCnt/ 2);     #$iCnt
       push @$raList, $aThis->[$iPos];
       $aThis->[$iPos]->{No} = $#$raList;
       my @aWk = @$aThis;
@@ -610,30 +619,35 @@ sub _savePpsSetPnt1($$$)
 #------------------------------------------------------------------------------
 # _saveBbd (OLE::Storage_Lite)
 #------------------------------------------------------------------------------
-sub _saveBbd($$$$) 
+sub _saveBbd($$$$)
 {
   my($oThis, $iSbdSize, $iBsize, $iPpsCnt, $rhInfo) = @_;
   my $FILE = $rhInfo->{_FILEH_};
 #0. Calculate Basic Setting
   my $iBbCnt = $rhInfo->{_BIG_BLOCK_SIZE} / OLE::Storage_Lite::LongIntSize();
+  my $iBlCnt = $iBbCnt - 1;
   my $i1stBdL = ($rhInfo->{_BIG_BLOCK_SIZE} - 0x4C) / OLE::Storage_Lite::LongIntSize();
-
+  my $i1stBdMax = $i1stBdL * $iBbCnt  - $i1stBdL;
   my $iBdExL = 0;
   my $iAll = $iBsize + $iPpsCnt + $iSbdSize;
   my $iAllW = $iAll;
   my $iBdCntW = int($iAllW / $iBbCnt) + (($iAllW % $iBbCnt)? 1: 0);
-  my $iBdCnt = int(($iAll + $iBdCntW) / $iBbCnt) + ((($iAllW+$iBdCntW) % $iBbCnt)? 1: 0);
+  my $iBdCnt = 0;
   my $i;
 #0.1 Calculate BD count
-  if ($iBdCnt >$i1stBdL) {
+  my $iBBleftover = $iAll - $i1stBdMax;
+  if ($iAll >$i1stBdMax) {
+
     while(1) {
-      $iBdExL++;
-      $iAllW++;
-      $iBdCntW = int($iAllW / $iBbCnt) + (($iAllW % $iBbCnt)? 1: 0);
-      $iBdCnt = int(($iAllW + $iBdCntW) / $iBbCnt) + ((($iAllW+$iBdCntW) % $iBbCnt)? 1: 0);
-      last if($iBdCnt <= ($iBdExL*$iBbCnt+ $i1stBdL));
+      $iBdCnt = int(($iBBleftover) / $iBlCnt) + ((($iBBleftover) % $iBlCnt)? 1: 0);
+      $iBdExL = int(($iBdCnt) / $iBlCnt) + ((($iBdCnt) % $iBlCnt)? 1: 0);
+      $iBBleftover = $iBBleftover + $iBdExL;
+      last if($iBdCnt == (int(($iBBleftover) / $iBlCnt) + ((($iBBleftover) % $iBlCnt)? 1: 0)));
     }
   }
+  $iAllW += $iBdExL;
+  $iBdCnt += $i1stBdL;
+  #print "iBdCnt = $iBdCnt \n";
 
 #1. Making BD
 #1.1 Set for SBD
@@ -665,7 +679,6 @@ sub _saveBbd($$$$)
 #1.6 Adjust for Block
   $FILE->print(pack("V", -1) x ($iBbCnt - (($iAllW + $iBdCnt) % $iBbCnt)))
                 if(($iAllW + $iBdCnt) % $iBbCnt);
-
 #2.Extra BDList
   if($iBdCnt > $i1stBdL)  {
     my $iN=0;
@@ -678,7 +691,7 @@ sub _saveBbd($$$$)
       }
       $FILE->print(pack("V", $iBsize+$iSbdSize+$iPpsCnt+$i));
     }
-    $FILE->print(pack("V", -1) x (($iBbCnt-1) - (($iBdCnt-$i1stBdL) % ($iBbCnt-1)))) 
+    $FILE->print(pack("V", -1) x (($iBbCnt-1) - (($iBdCnt-$i1stBdL) % ($iBbCnt-1))))
         if(($iBdCnt-$i1stBdL) % ($iBbCnt-1));
     $FILE->print(pack("V", -2));
   }
@@ -703,7 +716,7 @@ sub new ($$$) {
   my($sClass, $sNm, $sData) = @_;
     OLE::Storage_Lite::PPS::_new(
         $sClass,
-        undef, 
+        undef,
         $sNm,
         2,
         undef,
@@ -721,10 +734,10 @@ sub new ($$$) {
 #------------------------------------------------------------------------------
 sub newFile ($$;$) {
     my($sClass, $sNm, $sFile) = @_;
-    my $oSelf = 
+    my $oSelf =
     OLE::Storage_Lite::PPS::_new(
         $sClass,
-        undef, 
+        undef,
         $sNm,
         2,
         undef,
@@ -788,7 +801,7 @@ sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
         $sClass,
-        undef, 
+        undef,
         $sName,
         1,
         undef,
@@ -900,7 +913,7 @@ sub _initParse($) {
     binmode($oIo);
   }
 #4. Others
-  else {  
+  else {
     return undef;
   }
   return _getHeaderInfo($oIo);
@@ -956,7 +969,7 @@ sub _getPpsSearch($$$$$;$) {
   my $oPps = _getNthPps($iNo, $rhInfo, undef);
 #  if(grep($_ eq $oPps->{Name}, @$raName)) {
   if(($iCase && (grep(/^\Q$oPps->{Name}\E$/i, @$raName))) ||
-     (grep($_ eq $oPps->{Name}, @$raName))) { 
+     (grep($_ eq $oPps->{Name}, @$raName))) {
     $oPps = _getNthPps($iNo, $rhInfo, $bData) if ($bData);
     @aRes = ($oPps);
   }
@@ -1115,22 +1128,22 @@ sub _getNthPps($$$){
   my $lPpsPrev = unpack("V", substr($sWk, 0x44, OLE::Storage_Lite::LongIntSize()));
   my $lPpsNext = unpack("V", substr($sWk, 0x48, OLE::Storage_Lite::LongIntSize()));
   my $lDirPps  = unpack("V", substr($sWk, 0x4C, OLE::Storage_Lite::LongIntSize()));
-  my @raTime1st = 
-        (($iType == OLE::Storage_Lite::PpsType_Root()) or ($iType == OLE::Storage_Lite::PpsType_Dir()))? 
+  my @raTime1st =
+        (($iType == OLE::Storage_Lite::PpsType_Root()) or ($iType == OLE::Storage_Lite::PpsType_Dir()))?
             OLEDate2Local(substr($sWk, 0x64, 8)) : undef ,
-  my @raTime2nd = 
-        (($iType == OLE::Storage_Lite::PpsType_Root()) or ($iType == OLE::Storage_Lite::PpsType_Dir()))? 
+  my @raTime2nd =
+        (($iType == OLE::Storage_Lite::PpsType_Root()) or ($iType == OLE::Storage_Lite::PpsType_Dir()))?
             OLEDate2Local(substr($sWk, 0x6C, 8)) : undef,
   my($iStart, $iSize) = unpack("VV", substr($sWk, 0x74, 8));
   if($bData) {
       my $sData = _getData($iType, $iStart, $iSize, $rhInfo);
       return OLE::Storage_Lite::PPS->new(
-        $iPos, $sNm, $iType, $lPpsPrev, $lPpsNext, $lDirPps, 
+        $iPos, $sNm, $iType, $lPpsPrev, $lPpsNext, $lDirPps,
         \@raTime1st, \@raTime2nd, $iStart, $iSize, $sData, undef);
   }
   else {
       return OLE::Storage_Lite::PPS->new(
-        $iPos, $sNm, $iType, $lPpsPrev, $lPpsNext, $lDirPps, 
+        $iPos, $sNm, $iType, $lPpsPrev, $lPpsNext, $lDirPps,
         \@raTime1st, \@raTime2nd, $iStart, $iSize, undef, undef);
   }
 }
@@ -1215,7 +1228,7 @@ sub _getNextBlockNo($$){
 }
 #------------------------------------------------------------------------------
 # _isNormalBlock (OLE::Storage_Lite)
-# 0xFFFFFFFC : BDList, 0xFFFFFFFD : BBD, 
+# 0xFFFFFFFC : BDList, 0xFFFFFFFD : BBD,
 # 0xFFFFFFFE: End of Chain 0xFFFFFFFF : unused
 #------------------------------------------------------------------------------
 sub _isNormalBlock($){
@@ -1233,8 +1246,8 @@ sub _getSmallData($$$)
   $sRes = '';
   while ($iRest > 0) {
     _setFilePosSmall($iSmBlock, $rhInfo);
-    $rhInfo->{_FILEH_}->read($sWk, 
-        ($iRest >= $rhInfo->{_SMALL_BLOCK_SIZE})? 
+    $rhInfo->{_FILEH_}->read($sWk,
+        ($iRest >= $rhInfo->{_SMALL_BLOCK_SIZE})?
             $rhInfo->{_SMALL_BLOCK_SIZE}: $iRest);
     $sRes .= $sWk;
     $iRest -= $rhInfo->{_SMALL_BLOCK_SIZE};
@@ -1364,7 +1377,7 @@ sub LocalDate2OLE($)
   my $sRes = '';
   for(my $i=0;$i<8;$i++) {
     $iHex = $iBigDt % 0x100;
-    $sRes .= pack 'c', $iHex;
+    $sRes .= pack 'C', $iHex;
     $iBigDt /= 0x100;
   }
   return $sRes;
@@ -1423,7 +1436,7 @@ OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.11)
   $oIo->open("<iofile.xls");
   binmode($oIo);
   my $oOl = OLE::Storage_Lite->new($oFile);
-#2. Read and Get Data 
+#2. Read and Get Data
   my $oPps = $oOl->getPpsTree(1);
 #3.Save Data
 #3.1 As File
@@ -1443,7 +1456,7 @@ OLE::Storage_Lite allows you to read and write an OLE structured file.
 Please refer OLE::Storage by Martin Schwartz.
 
 OLE::Storage_Lite::PPS is a class representing PPS.
-OLE::Storage_Lite::PPS::Root, OLE::Storage_Lite::PPS::File and OLE::Storage_Lite::PPS::Dir 
+OLE::Storage_Lite::PPS::Root, OLE::Storage_Lite::PPS::File and OLE::Storage_Lite::PPS::Dir
 are subclasses of OLE::Storage_Lite::PPS.
 
 
@@ -1451,7 +1464,7 @@ are subclasses of OLE::Storage_Lite::PPS.
 
 I<$oOle> = OLE::Storage_Lite->new(I<$sFile>);
 
-Constructor. 
+Constructor.
 Creates a OLE::Storage_Lite object for I<$sFile>.
 I<$sFile> must be a correct file name.
 
@@ -1470,7 +1483,7 @@ if I<$bData> is true, the objects will have data in the file.
 
 I<$oPpsRoot> = I<oOle>->getPpsTree($raName [, $bData][, $iCase] );
 
-returns PPSs as OLE::Storage_Lite::PPS objects that has the name specified in 
+returns PPSs as OLE::Storage_Lite::PPS objects that has the name specified in
 I<$raName> array.
 if I<$bData> is true, the objects will have data in the file.
 if I<$iCase> is true, search with case insensitive.
@@ -1536,7 +1549,7 @@ timestamp2nd in array ref as similar fomat of localtime.
 
 =item StartBlock
 
-start block number 
+start block number
 
 =item Size
 
@@ -1559,7 +1572,7 @@ OLE::Storage_Lite::PPS::Root has 2 methods.
 =head2 new
 
 I<$oRoot> = OLE::Storage_Lite::PPS::Root->new(
-                    I<$raTime1st>, 
+                    I<$raTime1st>,
                     I<$raTime2nd>,
                     I<$raChild>);
 
@@ -1576,7 +1589,7 @@ I<$raChild> is a array ref of children PPSs.
 =head2 save
 
 I<$oRoot> = $o<oRoot>->save(
-                    I<$sFile>, 
+                    I<$sFile>,
                     I<$bNoAs>);
 
 Saves infomations into I<$sFile>. I<$sFile> is '-', this will use STDOUT.
@@ -1595,7 +1608,7 @@ OLE::Storage_Lite::PPS::Dir has 1 method.
 
 I<$oRoot> = OLE::Storage_Lite::PPS::Dir->new(
                     I<$sName>
-                  [, I<$raTime1st>] 
+                  [, I<$raTime1st>]
                   [, I<$raTime2nd>]
                   [, I<$raChild>]);
 
@@ -1637,7 +1650,7 @@ If I<$sFile> is an IO::Handle object, it uses that specified handle.
 If I<$sFile> is undef or '', it uses temporary file.
 
 CAUTION: Take care I<$sFile> will be updated by I<append> method.
-So if you want to use IO::Handle and append a data to it, 
+So if you want to use IO::Handle and append a data to it,
 you should open the handle with "r+".
 
 =head2 append
@@ -1651,7 +1664,7 @@ I<$sData> is appending data for that PPS.
 =head1 CAUTION
 
 A saved file with VBA (a.k.a Macros) by this module will not work correctly.
-However modules can get the same information from the file, 
+However modules can get the same information from the file,
 the file occurs a error in application(Word, Excel ...).
 
 =head1 COPYRIGHT

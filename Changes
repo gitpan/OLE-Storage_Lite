@@ -1,5 +1,15 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.12  Thu May 28  23:00:00 2004
+
+    - Applied patch to fix problems when creating very large files. 
+      Thanks James Rouzier.
+
+    - Applied patch to allow IO::Scalar as a data destination.
+      Thanks Kyle Burton.
+
+    - Fixed pack() warning in perl5.8 - jmcnamara
+
 0.11  Tue Nov 12  7:40:00 2002
     - Fix 10,683,904 bytes (20,700) Problem Thank you, John McNamara
     - Fix Makefile.PL (IO::Scalar), Thank you, Chris Dolan
