@@ -4,9 +4,9 @@ Makefile.PL
 README
 Storage_Lite.pm
 sample/README
-sample/add_test.xls
 sample/smpadd.pl
 sample/smpadd_a.pl
+sample/smpaddF.pl
 sample/smplls.pl
 sample/smplls_a.pl
 sample/smpsv.pl

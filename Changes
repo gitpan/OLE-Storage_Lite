@@ -1,5 +1,13 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.08  Thu Mar 1  22:30:00 2001
+	- Fix case insensitive version for getPpsSearch
+          Thank you, yusuf_najmuddin and sorry Punam Chordia.
+	- Add IO::Scalar prerequire to Makefile.PL
+          Thank you, J. David Blackstone.
+	- Add newFile and append methond to Pps::File
+                                       by Kawai Takanori
+
 0.07  Thu Feb  22 9:00:00 2001
 	- Add case insensitive version for getPpsSearch
                                        by Kawai Takanori

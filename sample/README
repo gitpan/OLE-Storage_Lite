@@ -8,6 +8,8 @@ Files
     smpadd_a.pl: same as smpadd.pl (in 4 patterns)
     smplls_a.pl: same as smplls.pl (in 3 patterns)
 
+    smpaddF.pl : same as smpadd.pl with file feature
+
 Example:
 > perl smplls.pl test.xls
 00    1 'Root Entry' (pps 0)                          ROOT 15.11.1659 00:26:00

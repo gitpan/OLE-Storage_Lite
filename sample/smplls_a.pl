@@ -18,10 +18,10 @@ PrnItem($oPps, 0, \$iTtl, 1);
 
 #Variable
 print "--------------- File\n";
-open IN, '<file.xls';
+open IN, '<'. $ARGV[0];
 binmode(IN);
 my $sBuff;
-read(IN, $sBuff, -s 'file.xls');
+read(IN, $sBuff, -s $ARGV[0]);
 close IN;
 $oOl = OLE::Storage_Lite->new(\$sBuff);
 $oPps = $oOl->getPpsTree();
@@ -33,7 +33,7 @@ PrnItem($oPps, 0, \$iTtl, 1);
 print "--------------- IO::File\n";
 use IO::File;
 my $oIo = new IO::File;
-$oIo->open("<iofile.xls");
+$oIo->open('<' . $ARGV[0]);
 binmode($oIo);
 $oOl = OLE::Storage_Lite->new($oIo);
 $oPps = $oOl->getPpsTree();

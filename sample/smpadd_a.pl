@@ -18,7 +18,7 @@ push @{$oPps->{Child}}, $oF;
 push @{$oPps->{Child}}, $oF2;
 
 #STDOUT
-$oPps->save('-');
+#$oPps->save('-');
 #FILE
 $oPps->save('file.xls');
 

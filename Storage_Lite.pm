@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.07;
+$VERSION = 0.08;
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -69,6 +69,16 @@ sub _new ($$$$$$$$$$$;$$) {
   return $oThis;
 }
 #------------------------------------------------------------------------------
+# _DataLen (OLE::Storage_Lite::PPS)
+# Check for update
+#------------------------------------------------------------------------------
+sub _DataLen($) {
+    my($oSelf) =@_;
+    return 0 unless(defined($oSelf->{Data}));
+    return ($oSelf->{_PPS_FILE})?
+        ($oSelf->{_PPS_FILE}->stat())[7] : length($oSelf->{Data});
+}
+#------------------------------------------------------------------------------
 # _makeSmallData (OLE::Storage_Lite::PPS)
 #------------------------------------------------------------------------------
 sub _makeSmallData($$$) {
@@ -91,7 +101,16 @@ sub _makeSmallData($$$) {
       $FILE->print(pack("V", -2));
 
       #1.2 Add to Data String(this will be written for RootEntry)
-      $sRes .= $oPps->{Data};
+      #Check for update
+      if($oPps->{_PPS_FILE}) {
+        my $sBuff;
+        while($oPps->{_PPS_FILE}->read($sBuff, 4096)) {
+            $sRes .= $sBuff;
+        }
+      }
+      else {
+        $sRes .= $oPps->{Data};
+      }
       $sRes .= ("\x00" x 
         ($rhInfo->{_SMALL_BLOCK_SIZE} - ($oPps->{Size}% $rhInfo->{_SMALL_BLOCK_SIZE})))
         if($oPps->{Size}% $rhInfo->{_SMALL_BLOCK_SIZE});
@@ -154,7 +173,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.07;
+$VERSION = 0.08;
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -265,7 +284,7 @@ sub _calcSize($$)
 
   foreach my $oPps (@$raList) {
       if($oPps->{Type}==OLE::Storage_Lite::PpsType_File()) {
-        $oPps->{Size} = length($oPps->{Data});
+        $oPps->{Size} = $oPps->_DataLen();  #Mod
         if($oPps->{Size} < $rhInfo->{_SMALL_SIZE}) {
           $iSBcnt += int($oPps->{Size} / $rhInfo->{_SMALL_BLOCK_SIZE})
                           + (($oPps->{Size} % $rhInfo->{_SMALL_BLOCK_SIZE})? 1: 0);
@@ -376,24 +395,36 @@ sub _saveBigData($$$$) {
   foreach my $oPps (@$raList) {
     if($oPps->{Type}!=OLE::Storage_Lite::PpsType_Dir()) {
 #print "PPS: $oPps DEF:", defined($oPps->{Data}), "\n";
-        $oPps->{Size} = (defined($oPps->{Data}))? length($oPps->{Data}):0;
-    if(($oPps->{Size} >= $rhInfo->{_SMALL_SIZE}) ||
-       (($oPps->{Type} == OLE::Storage_Lite::PpsType_Root()) && ($oPps->{Data}))) {
-    #1.1 Write Data
-      $FILE->print($oPps->{Data});
-      $FILE->print(
-                "\x00" x 
-                ($rhInfo->{_BIG_BLOCK_SIZE} - 
-                    ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE}))
-            ) if ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE});
-    #1.2 Set For PPS
-      $oPps->{StartBlock} = $$iStBlk;
-      $$iStBlk += 
-            (int($oPps->{Size}/ $rhInfo->{_BIG_BLOCK_SIZE}) +
-                (($oPps->{Size}% $rhInfo->{_BIG_BLOCK_SIZE})? 1: 0));
+        $oPps->{Size} = $oPps->_DataLen();  #Mod
+        if(($oPps->{Size} >= $rhInfo->{_SMALL_SIZE}) ||
+            (($oPps->{Type} == OLE::Storage_Lite::PpsType_Root()) && defined($oPps->{Data}))) {
+            #1.1 Write Data
+            #Check for update
+            if($oPps->{_PPS_FILE}) {
+                my $sBuff;
+				my $iLen = 0;
+				$oPps->{_PPS_FILE}->seek(0, 0);	#To The Top
+                while($oPps->{_PPS_FILE}->read($sBuff, 4096)) {
+					$iLen += length($sBuff);
+                    $FILE->print($sBuff);           #Check for update
+                }
+            }
+            else {
+                $FILE->print($oPps->{Data});
+            }
+            $FILE->print(
+                        "\x00" x 
+                        ($rhInfo->{_BIG_BLOCK_SIZE} - 
+                            ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE}))
+                    ) if ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE});
+            #1.2 Set For PPS
+            $oPps->{StartBlock} = $$iStBlk;
+            $$iStBlk += 
+                    (int($oPps->{Size}/ $rhInfo->{_BIG_BLOCK_SIZE}) +
+                        (($oPps->{Size}% $rhInfo->{_BIG_BLOCK_SIZE})? 1: 0));
+        }
     }
   }
- }
 }
 #------------------------------------------------------------------------------
 # _savePps (OLE::Storage_Lite::PPS::Root)
@@ -555,7 +586,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.07;
+$VERSION = 0.08;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -576,6 +607,61 @@ sub new ($$$) {
         $sData,
         undef);
 }
+#------------------------------------------------------------------------------
+# newFile (OLE::Storage_Lite::PPS::File)
+#------------------------------------------------------------------------------
+sub newFile ($$;$) {
+    my($sClass, $sNm, $sFile) = @_;
+    my $oSelf = 
+    OLE::Storage_Lite::PPS::_new(
+        $sClass,
+        undef, 
+        $sNm,
+        2,
+        undef,
+        undef,
+        undef,
+        undef,
+        undef,
+        undef,
+        undef,
+        '',
+        undef);
+#
+	if((!defined($sFile)) or ($sFile eq '')) {
+	    $oSelf->{_PPS_FILE} = IO::File->new_tmpfile();
+	}
+    elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
+	    $oSelf->{_PPS_FILE} = $sFile;
+	}
+	elsif(!ref($sFile)) {
+		#File Name
+    	$oSelf->{_PPS_FILE} = new IO::File;
+	    return undef unless($oSelf->{_PPS_FILE});
+        $oSelf->{_PPS_FILE}->open("$sFile", "r+") || return undef;
+	}
+	else {
+		return undef;
+	}
+	if($oSelf->{_PPS_FILE}) {
+		$oSelf->{_PPS_FILE}->seek(0, 2);
+		binmode($oSelf->{_PPS_FILE});
+	    $oSelf->{_PPS_FILE}->autoflush(1);
+	}
+    return $oSelf;
+}
+#------------------------------------------------------------------------------
+# append (OLE::Storage_Lite::PPS::File)
+#------------------------------------------------------------------------------
+sub append ($$) {
+    my($oSelf, $sData) = @_;
+	if($oSelf->{_PPS_FILE}) {
+    	$oSelf->{_PPS_FILE}->print($sData);
+	}
+	else {
+		$oSelf->{Data} .= $sData;
+	}
+}
 
 #//////////////////////////////////////////////////////////////////////////////
 # OLE::Storage_Lite::PPS::Dir Object
@@ -588,7 +674,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.07;
+$VERSION = 0.08;
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -616,7 +702,7 @@ use IO::File;
 use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.07;
+$VERSION = 0.08;
 sub _getPpsSearch($$$$$);
 sub _getPpsTree($$$);
 #------------------------------------------------------------------------------
@@ -745,7 +831,7 @@ sub _getPpsSearch($$$$$) {
 #1. Check it self
   my $oPps = _getNthPps($iNo, $rhInfo, undef);
 #  if(grep($_ eq $oPps->{Name}, @$raName)) {
-  if(($iCase && (grep(/^\Q$oPps->{Name}\E$/, @$raName))) ||
+  if(($iCase && (grep(/^\Q$oPps->{Name}\E$/i, @$raName))) ||
      (grep($_ eq $oPps->{Name}, @$raName))) { 
     $oPps = _getNthPps($iNo, $rhInfo, $bData) if ($bData);
     @aRes = ($oPps);
@@ -772,7 +858,7 @@ sub _getHeaderInfo($){
   $rhInfo->{_FILEH_} = $FILE;
   my $sWk;
 #0. Check ID
-  $rhInfo->{_FILEH_}->seek(0,0);
+  $rhInfo->{_FILEH_}->seek(0, 0);
   $rhInfo->{_FILEH_}->read($sWk, 8);
   return undef unless($sWk eq "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1");
 #BIG BLOCK SIZE
@@ -1196,7 +1282,7 @@ __END__
 
 =head1 NAME
 
-OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.07)
+OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.08)
 
 =head1 SYNOPSIS
 
@@ -1404,15 +1490,39 @@ I<$raChild> is a array ref of children PPSs.
 
 =head1 OLE::Storage_Lite::PPS::File
 
-OLE::Storage_Lite::PPS::File has 1 method.
+OLE::Storage_Lite::PPS::File has 3 method.
 
 =head2 new
 
-I<$oRoot> = OLE::Storage_Lite::PPS::File->new(I<$sName>, $sData);
+I<$oRoot> = OLE::Storage_Lite::PPS::File->new(I<$sName>, I<$sData>);
 
 I<$sName> is name of the PPS.
 
 I<$sData> is data of the PPS.
+
+=head2 newFile
+
+I<$oRoot> = OLE::Storage_Lite::PPS::File->newFile(I<$sName>, I<$sFile>);
+
+This function makes to use file handle for geting and storing data.
+
+I<$sName> is name of the PPS.
+
+If I<$sFile> is scalar, it assumes that is a filename.
+If I<$sFile> is an IO::Handle object, it uses that specified handle.
+If I<$sFile> is undef or '', it uses temporary file.
+
+CAUTION: Take care I<$sFile> will be updated by I<append> method.
+So if you want to use IO::Handle and append a data to it, 
+you should open the handle with "r+".
+
+=head2 append
+
+I<$oRoot> = $oPps->append($sData);
+
+appends specified data to that PPS.
+
+I<$sData> is appending data for that PPS.
 
 =head1 CAUTION
 

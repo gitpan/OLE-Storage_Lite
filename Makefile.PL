@@ -4,4 +4,5 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'	=> 'OLE::Storage_Lite',
     'VERSION_FROM' => 'Storage_Lite.pm', # finds $VERSION
+    'PREREQ_PM' => {'IO::Scalar' => undef},
 );
