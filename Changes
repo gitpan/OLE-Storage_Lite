@@ -1,5 +1,9 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.11  Tue Nov 12  7:40:00 2002
+    - Fix 10,683,904 bytes (20,700) Problem Thank you, John McNamara
+    - Fix Makefile.PL (IO::Scalar), Thank you, Chris Dolan
+
 0.10  Thu Jan 24  6:00:00 2001
     - Fix Broken file problem + Fixed first release
           Thank you, Bruno Wolff III
