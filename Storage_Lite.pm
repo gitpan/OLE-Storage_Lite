@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -149,7 +149,7 @@ use strict;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.03;
+$VERSION = 0.04;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::Root)
 #------------------------------------------------------------------------------
@@ -518,7 +518,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.03;
+$VERSION = 0.04;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -551,7 +551,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.03;
+$VERSION = 0.04;
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -577,7 +577,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.03;
+$VERSION = 0.04;
 #------------------------------------------------------------------------------
 # Const for OLE::Storage_Lite
 #------------------------------------------------------------------------------
@@ -830,7 +830,7 @@ sub _getNthPps($$$){
   $iPpsPos   = $iPos % $iBaseCnt;
 
   $iBlock = _getNthBlockNo($iPpsStart, $iPpsBlock, $rhInfo);
-  return undef unless($iBlock);
+  return undef unless(defined($iBlock));
 
   _setFilePos($iBlock, OLE::Storage_Lite::PpsSize()*$iPpsPos, $rhInfo);
   read($rhInfo->{_FILEH_}, $sWk, OLE::Storage_Lite::PpsSize());
@@ -1131,7 +1131,7 @@ __END__
 
 =head1 NAME
 
-OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.03)
+OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.04)
 
 =head1 SYNOPSIS
 
