@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.10;
+$VERSION = '0.10';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -174,7 +174,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.10;
+$VERSION = '0.10';
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -694,7 +694,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.10;
+$VERSION = '0.10';
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -782,7 +782,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.10;
+$VERSION = '0.10';
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -810,7 +810,7 @@ use IO::File;
 use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.10;
+$VERSION = '0.10';
 sub _getPpsSearch($$$$$;$);
 sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------
@@ -910,7 +910,7 @@ sub _initParse($) {
 sub _getPpsTree($$$;$) {
   my($iNo, $rhInfo, $bData, $raDone) = @_;
   if(defined($raDone)) {
-    return () if(grep /$iNo/, @$raDone);
+    return () if(grep {$_ ==$iNo} @$raDone);
   }
   else {
     $raDone=[];
@@ -946,7 +946,7 @@ sub _getPpsSearch($$$$$;$) {
   my @aRes;
 #1. Check it self
   if(defined($raDone)) {
-    return () if(grep /$iNo/, @$raDone);
+    return () if(grep {$_==$iNo} @$raDone);
   }
   else {
     $raDone=[];
@@ -1405,7 +1405,7 @@ __END__
 
 =head1 NAME
 
-OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.08)
+OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.10)
 
 =head1 SYNOPSIS
 

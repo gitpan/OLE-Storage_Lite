@@ -1,7 +1,7 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
 0.10  Thu Jan 24  6:00:00 2001
-    - Fix Broken file problem
+    - Fix Broken file problem + Fixed first release
           Thank you, Bruno Wolff III
 
 0.09  Fri May 25  6:00:00 2001
