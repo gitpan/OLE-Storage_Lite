@@ -3,8 +3,12 @@ MANIFEST
 Makefile.PL
 README
 Storage_Lite.pm
-sample/smplls.pl
-sample/smpsv.pl
+sample/README
+sample/add_test.xls
 sample/smpadd.pl
+sample/smpadd_a.pl
+sample/smplls.pl
+sample/smplls_a.pl
+sample/smpsv.pl
 sample/test.xls
 test.pl

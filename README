@@ -7,6 +7,12 @@ DESCRIPTION
     The module will work on the majority of Windows, UNIX and
     Macintosh platforms. 
 
+REQUIREMENT
+        This module requires these modules:
+                IO::Handle  (included in IO)
+                IO::File    (included in IO)
+                IO::Scalar  (included in IO::Stringy)
+
 INSTALLATION
     The module can be installed using the standard Perl procedure:
 
@@ -28,9 +34,9 @@ SAMPLE
     smpsv.pl  : creates and save a sample OLE-file(tsv.dat).
 
 VERSION
-    This document refers to version 0.05 of OLE::Storage_Lite
-    released Jan 4, 2001.
+    This document refers to version 0.06 of OLE::Storage_Lite
+    released Feb 2, 2001.
 
 AUTHOR
-    Kawai Takanori (GCD00051@nifty.ne.jp)
+    Kawai Takanori (kwitknr@cpan.org)
 

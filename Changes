@@ -1,5 +1,10 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.06  Thu Feb  2 12:00:00 2001
+	- Add referrence of scalar and IO::File object support
+                                       by Kawai Takanori
+            Thank you Jeff Haferman
+
 0.05  Thu Jan  4 14:00:00 2001
 	- Modified Minor mistakes by Kawai Takanori
             Thank you Hao Huang and Ian Penman
