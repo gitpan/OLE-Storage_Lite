@@ -34,8 +34,8 @@ SAMPLE
     smpsv.pl  : creates and save a sample OLE-file(tsv.dat).
 
 VERSION
-    This document refers to version 0.06 of OLE::Storage_Lite
-    released Feb 2, 2001.
+    This document refers to version 0.07 of OLE::Storage_Lite
+    released Feb 22, 2001.
 
 AUTHOR
     Kawai Takanori (kwitknr@cpan.org)

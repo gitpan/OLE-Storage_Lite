@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.06;
+$VERSION = 0.07;
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -154,7 +154,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.06;
+$VERSION = 0.07;
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -375,7 +375,8 @@ sub _saveBigData($$$$) {
 #1.Write Big (ge 0x1000) Data into Block
   foreach my $oPps (@$raList) {
     if($oPps->{Type}!=OLE::Storage_Lite::PpsType_Dir()) {
-        $oPps->{Size} = length($oPps->{Data});
+#print "PPS: $oPps DEF:", defined($oPps->{Data}), "\n";
+        $oPps->{Size} = (defined($oPps->{Data}))? length($oPps->{Data}):0;
     if(($oPps->{Size} >= $rhInfo->{_SMALL_SIZE}) ||
        (($oPps->{Type} == OLE::Storage_Lite::PpsType_Root()) && ($oPps->{Data}))) {
     #1.1 Write Data
@@ -519,7 +520,7 @@ sub _saveBbd($$$$)
   }
 #1.5 Set for ExtraBDList
   for($i=0; $i<$iBdExL;$i++) {
-    $FILE->(pack("V", 0xFFFFFFFC));
+    $FILE->print(pack("V", 0xFFFFFFFC));
   }
 #1.6 Adjust for Block
   $FILE->print(pack("V", -1) x ($iBbCnt - (($iAllW + $iBdCnt) % $iBbCnt)))
@@ -554,7 +555,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.06;
+$VERSION = 0.07;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -587,7 +588,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.06;
+$VERSION = 0.07;
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -615,8 +616,8 @@ use IO::File;
 use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.06;
-sub _getPpsSearch($$$$);
+$VERSION = 0.07;
+sub _getPpsSearch($$$$$);
 sub _getPpsTree($$$);
 #------------------------------------------------------------------------------
 # Const for OLE::Storage_Lite
@@ -656,14 +657,14 @@ sub getPpsTree($;$)
 #------------------------------------------------------------------------------
 # getPpsTree: OLE::Storage_Lite
 #------------------------------------------------------------------------------
-sub getPpsSearch($$;$)
+sub getPpsSearch($$;$$)
 {
-  my($oThis, $raName, $bData) = @_;
+  my($oThis, $raName, $bData, $iCase) = @_;
 #0.Init
   my $rhInfo = _initParse($oThis->{_FILE});
   return undef unless($rhInfo);
 #1. Get Data
-  my @aList = _getPpsSearch(0, $rhInfo, $raName, $bData);
+  my @aList = _getPpsSearch(0, $rhInfo, $raName, $bData, $iCase);
   close(IN);
   return @aList;
 }
@@ -737,13 +738,15 @@ sub _getPpsTree($$$) {
 #------------------------------------------------------------------------------
 # _getPpsSearch: OLE::Storage_Lite
 #------------------------------------------------------------------------------
-sub _getPpsSearch($$$$) {
-  my($iNo, $rhInfo, $raName, $bData) = @_;
+sub _getPpsSearch($$$$$) {
+  my($iNo, $rhInfo, $raName, $bData, $iCase) = @_;
   my $iRootBlock = $rhInfo->{_ROOT_START} ;
   my @aRes;
 #1. Check it self
   my $oPps = _getNthPps($iNo, $rhInfo, undef);
-  if(grep($_ eq $oPps->{Name}, @$raName)) {
+#  if(grep($_ eq $oPps->{Name}, @$raName)) {
+  if(($iCase && (grep(/^\Q$oPps->{Name}\E$/, @$raName))) ||
+     (grep($_ eq $oPps->{Name}, @$raName))) { 
     $oPps = _getNthPps($iNo, $rhInfo, $bData) if ($bData);
     @aRes = ($oPps);
   }
@@ -751,11 +754,11 @@ sub _getPpsSearch($$$$) {
     @aRes = ();
   }
 #2. Check Child, Previous, Next PPSs
-  push @aRes, _getPpsSearch($oPps->{DirPps},  $rhInfo, $raName, $bData)
+  push @aRes, _getPpsSearch($oPps->{DirPps},  $rhInfo, $raName, $bData, $iCase)
         if($oPps->{DirPps} !=  0xFFFFFFFF) ;
-  push @aRes, _getPpsSearch($oPps->{PrevPps}, $rhInfo, $raName, $bData)
+  push @aRes, _getPpsSearch($oPps->{PrevPps}, $rhInfo, $raName, $bData, $iCase)
         if($oPps->{PrevPps} != 0xFFFFFFFF );
-  push @aRes, _getPpsSearch($oPps->{NextPps}, $rhInfo, $raName, $bData)
+  push @aRes, _getPpsSearch($oPps->{NextPps}, $rhInfo, $raName, $bData, $iCase)
         if($oPps->{NextPps} != 0xFFFFFFFF);
   return @aRes;
 }
@@ -1193,7 +1196,7 @@ __END__
 
 =head1 NAME
 
-OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.06)
+OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.07)
 
 =head1 SYNOPSIS
 
@@ -1255,11 +1258,12 @@ if I<$bData> is true, the objects will have data in the file.
 
 =head2 getPpsSearch
 
-I<$oPpsRoot> = I<oOle>->getPpsTree($raName [, $bData]);
+I<$oPpsRoot> = I<oOle>->getPpsTree($raName [, $bData][, $iCase] );
 
 returns PPSs as OLE::Storage_Lite::PPS objects that has the name specified in 
 I<$raName> array.
 if I<$bData> is true, the objects will have data in the file.
+if I<$iCase> is true, search with case insensitive.
 
 =head2 getNthPps
 
