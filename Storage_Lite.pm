@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.09;
+$VERSION = 0.10;
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -174,7 +174,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.09;
+$VERSION = 0.10;
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -694,7 +694,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.09;
+$VERSION = 0.10;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -782,7 +782,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.09;
+$VERSION = 0.10;
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -810,9 +810,9 @@ use IO::File;
 use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.09;
-sub _getPpsSearch($$$$$);
-sub _getPpsTree($$$);
+$VERSION = 0.10;
+sub _getPpsSearch($$$$$;$);
+sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------
 # Const for OLE::Storage_Lite
 #------------------------------------------------------------------------------
@@ -849,7 +849,7 @@ sub getPpsTree($;$)
   return $oPps;
 }
 #------------------------------------------------------------------------------
-# getPpsTree: OLE::Storage_Lite
+# getSearch: OLE::Storage_Lite
 #------------------------------------------------------------------------------
 sub getPpsSearch($$;$$)
 {
@@ -907,15 +907,22 @@ sub _initParse($) {
 #------------------------------------------------------------------------------
 # _getPpsTree: OLE::Storage_Lite
 #------------------------------------------------------------------------------
-sub _getPpsTree($$$) {
-  my($iNo, $rhInfo, $bData) = @_;
+sub _getPpsTree($$$;$) {
+  my($iNo, $rhInfo, $bData, $raDone) = @_;
+  if(defined($raDone)) {
+    return () if(grep /$iNo/, @$raDone);
+  }
+  else {
+    $raDone=[];
+  }
+  push @$raDone, $iNo;
+
   my $iRootBlock = $rhInfo->{_ROOT_START} ;
 #1. Get Information about itself
   my $oPps = _getNthPps($iNo, $rhInfo, $bData);
-print "NO:$iNo ", $oPps->{PrevPps}, " : ", $oPps->{NextPps}, "\n";
 #2. Child
   if($oPps->{DirPps} !=  0xFFFFFFFF) {
-    my @aChildL = _getPpsTree($oPps->{DirPps}, $rhInfo, $bData);
+    my @aChildL = _getPpsTree($oPps->{DirPps}, $rhInfo, $bData, $raDone);
     $oPps->{Child} =  \@aChildL;
   }
   else {
@@ -923,21 +930,28 @@ print "NO:$iNo ", $oPps->{PrevPps}, " : ", $oPps->{NextPps}, "\n";
   }
 #3. Previous,Next PPSs
   my @aList = ();
-  push @aList, _getPpsTree($oPps->{PrevPps}, $rhInfo, $bData)
+  push @aList, _getPpsTree($oPps->{PrevPps}, $rhInfo, $bData, $raDone)
                         if($oPps->{PrevPps} != 0xFFFFFFFF);
   push @aList, $oPps;
-  push @aList, _getPpsTree($oPps->{NextPps}, $rhInfo, $bData)
+  push @aList, _getPpsTree($oPps->{NextPps}, $rhInfo, $bData, $raDone)
                 if($oPps->{NextPps} != 0xFFFFFFFF);
   return @aList;
 }
 #------------------------------------------------------------------------------
 # _getPpsSearch: OLE::Storage_Lite
 #------------------------------------------------------------------------------
-sub _getPpsSearch($$$$$) {
-  my($iNo, $rhInfo, $raName, $bData, $iCase) = @_;
+sub _getPpsSearch($$$$$;$) {
+  my($iNo, $rhInfo, $raName, $bData, $iCase, $raDone) = @_;
   my $iRootBlock = $rhInfo->{_ROOT_START} ;
   my @aRes;
 #1. Check it self
+  if(defined($raDone)) {
+    return () if(grep /$iNo/, @$raDone);
+  }
+  else {
+    $raDone=[];
+  }
+  push @$raDone, $iNo;
   my $oPps = _getNthPps($iNo, $rhInfo, undef);
 #  if(grep($_ eq $oPps->{Name}, @$raName)) {
   if(($iCase && (grep(/^\Q$oPps->{Name}\E$/i, @$raName))) ||
@@ -949,11 +963,11 @@ sub _getPpsSearch($$$$$) {
     @aRes = ();
   }
 #2. Check Child, Previous, Next PPSs
-  push @aRes, _getPpsSearch($oPps->{DirPps},  $rhInfo, $raName, $bData, $iCase)
+  push @aRes, _getPpsSearch($oPps->{DirPps},  $rhInfo, $raName, $bData, $iCase, $raDone)
         if($oPps->{DirPps} !=  0xFFFFFFFF) ;
-  push @aRes, _getPpsSearch($oPps->{PrevPps}, $rhInfo, $raName, $bData, $iCase)
+  push @aRes, _getPpsSearch($oPps->{PrevPps}, $rhInfo, $raName, $bData, $iCase, $raDone)
         if($oPps->{PrevPps} != 0xFFFFFFFF );
-  push @aRes, _getPpsSearch($oPps->{NextPps}, $rhInfo, $raName, $bData, $iCase)
+  push @aRes, _getPpsSearch($oPps->{NextPps}, $rhInfo, $raName, $bData, $iCase, $raDone)
         if($oPps->{NextPps} != 0xFFFFFFFF);
   return @aRes;
 }
