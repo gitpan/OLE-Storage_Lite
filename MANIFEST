@@ -1,0 +1,8 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+Storage_Lite.pm
+sample/smplls.pl
+sample/smpsv.pl
+test.pl

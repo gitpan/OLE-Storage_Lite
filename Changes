@@ -1,0 +1,8 @@
+Revision history for Perl extension OLE::Storage_Lite.
+
+0.01  Sat Nov  4 16:00:00 2000
+	- original version; created by Kawai Takanori
+
+0.02  Wed Nov  8 21:00:00 2000
+	- Added STDOUT; created by Kawai Takanori
+
