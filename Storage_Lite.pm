@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -96,9 +96,9 @@ sub _makeSmallData($$$) {
                     + (($oPps->{Size} % $rhInfo->{_SMALL_BLOCK_SIZE})? 1: 0);
       #1.1 Add to SBD
       for (my $i = 0; $i<($iSmbCnt-1); $i++) {
-            $FILE->print(pack("V", $i+$iSmBlk+1));
+            print {$FILE} (pack("V", $i+$iSmBlk+1));
       }
-      $FILE->print(pack("V", -2));
+      print {$FILE} (pack("V", -2));
 
       #1.2 Add to Data String(this will be written for RootEntry)
       #Check for update
@@ -122,7 +122,7 @@ sub _makeSmallData($$$) {
   }
   }
   my $iSbCnt = int($rhInfo->{_BIG_BLOCK_SIZE}/ OLE::Storage_Lite::LongIntSize());
-  $FILE->print(pack("V", -1) x ($iSbCnt - ($iSmBlk % $iSbCnt)))
+  print {$FILE} (pack("V", -1) x ($iSbCnt - ($iSmBlk % $iSbCnt)))
     if($iSmBlk  % $iSbCnt);
 #2. Write SBD with adjusting length for block
   return $sRes;
@@ -135,7 +135,7 @@ sub _savePpsWk($$)
   my($oThis, $rhInfo) = @_;
 #1. Write PPS
   my $FILE = $rhInfo->{_FILEH_};
-  $FILE->print(
+  print {$FILE} (
             $oThis->{Name}
             . ("\x00" x (64 - length($oThis->{Name})))  #64
             , pack("v", length($oThis->{Name}) + 2)     #66
@@ -174,7 +174,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.11';
+$VERSION = '0.13';
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ sub new ($;$$$) {
 #------------------------------------------------------------------------------
 sub save($$;$$) {
   my($oThis, $sFile, $bNoAs, $rhInfo) = @_;
-#0.Initial Setting for saving
+  #0.Initial Setting for saving
   $rhInfo = {} unless($rhInfo);
   $rhInfo->{_BIG_BLOCK_SIZE}  = 2**
                 (($rhInfo->{_BIG_BLOCK_SIZE})?
@@ -215,24 +215,24 @@ sub save($$;$$) {
 
   my $closeFile = undef;
 
-#1.Open File
-#1.1 $sFile is Ref of scalar
+  #1.Open File
+  #1.1 $sFile is Ref of scalar
   if(ref($sFile) eq 'SCALAR') {
     my $oIo = new IO::Scalar $sFile, O_WRONLY;
     $rhInfo->{_FILEH_} = $oIo;
     $closeFile = 1;
   }
-#1.1.1 $sFile is a IO::Scalar object
+  #1.1.1 $sFile is a IO::Scalar object
   elsif(UNIVERSAL::isa($sFile, 'IO::Scalar')) {
     $rhInfo->{_FILEH_} = $sFile;
   }
-#1.2 $sFile is a IO::Handle object
+  #1.2 $sFile is a IO::Handle object
   elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
     binmode($sFile);
     $rhInfo->{_FILEH_} = $sFile;
     $closeFile = 1;
   }
-#1.3 $sFile is a simple filename string
+  #1.3 $sFile is a simple filename string
   elsif(!ref($sFile)) {
     if($sFile ne '-') {
         my $oIo = new IO::File;
@@ -248,13 +248,17 @@ sub save($$;$$) {
         $closeFile = 1;
     }
   }
-#1.4 Others
+  #1.4 Assume that if $sFile is a ref then it is a valid filehandle
   else {
-    return undef;
+    # Not all filehandles support binmode() so try it in an eval.
+    eval{ binmode $sFile };
+    $rhInfo->{_FILEH_} = $sFile;
+    # Caller control filehandle
+    $closeFile = 0;
   }
 
   my $iBlk = 0;
-#1. Make an array of PPS (for Save)
+  #1. Make an array of PPS (for Save)
   my @aList=();
   if($bNoAs) {
     _savePpsSetPnt2([$oThis], \@aList, $rhInfo);
@@ -262,22 +266,26 @@ sub save($$;$$) {
   else {
     _savePpsSetPnt([$oThis], \@aList, $rhInfo);
   }
- my ($iSBDcnt, $iBBcnt, $iPPScnt) = $oThis->_calcSize(\@aList, $rhInfo);
-#2.Save Header
+  my ($iSBDcnt, $iBBcnt, $iPPScnt) = $oThis->_calcSize(\@aList, $rhInfo);
+
+  #2.Save Header
   $oThis->_saveHeader($rhInfo, $iSBDcnt, $iBBcnt, $iPPScnt);
 
-#3.Make Small Data string (write SBD)
+  #3.Make Small Data string (write SBD)
   my $sSmWk = $oThis->_makeSmallData(\@aList, $rhInfo);
   $oThis->{Data} = $sSmWk;  #Small Datas become RootEntry Data
 
-#4. Write BB
+  #4. Write BB
   my $iBBlk = $iSBDcnt;
   $oThis->_saveBigData(\$iBBlk, \@aList, $rhInfo);
-#5. Write PPS
+
+  #5. Write PPS
   $oThis->_savePps(\@aList, $rhInfo);
-#6. Write BD and BDList and Adding Header informations
+
+  #6. Write BD and BDList and Adding Header informations
   $oThis->_saveBbd($iSBDcnt, $iBBcnt, $iPPScnt,  $rhInfo);
-#7.Close File
+
+  #7.Close File
   $rhInfo->{_FILEH_}->close if $closeFile;
 }
 #------------------------------------------------------------------------------
@@ -357,7 +365,7 @@ sub _saveHeader($$$$$) {
   #print "iBdCnt = $iBdCnt \n";
 
 #1.Save Header
-  $FILE->print(
+  print {$FILE} (
             "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
             , "\x00\x00\x00\x00" x 4
             , pack("v", 0x3b)
@@ -376,13 +384,13 @@ sub _saveHeader($$$$$) {
     );
 #2. Extra BDList Start, Count
   if($iAll <= $i1stBdMax) {
-    $FILE->print(
+    print {$FILE} (
                 pack("V", -2),      #Extra BDList Start
                 pack("V", 0),       #Extra BDList Count
         );
   }
   else {
-    $FILE->print(
+    print {$FILE} (
             pack("V", $iAll+$iBdCnt),
             pack("V", $iBdExL),
         );
@@ -390,9 +398,9 @@ sub _saveHeader($$$$$) {
 
 #3. BDList
     for($i=0; $i<$i1stBdL and $i < $iBdCnt; $i++) {
-        $FILE->print(pack("V", $iAll+$i));
+        print {$FILE} (pack("V", $iAll+$i));
     }
-    $FILE->print((pack("V", -1)) x($i1stBdL-$i)) if($i<$i1stBdL);
+    print {$FILE} ((pack("V", -1)) x($i1stBdL-$i)) if($i<$i1stBdL);
 }
 #------------------------------------------------------------------------------
 # _saveBigData (OLE::Storage_Lite::PPS)
@@ -417,13 +425,13 @@ sub _saveBigData($$$$) {
                 $oPps->{_PPS_FILE}->seek(0, 0); #To The Top
                 while($oPps->{_PPS_FILE}->read($sBuff, 4096)) {
                     $iLen += length($sBuff);
-                    $FILE->print($sBuff);           #Check for update
+                    print {$FILE} ($sBuff);           #Check for update
                 }
             }
             else {
-                $FILE->print($oPps->{Data});
+                print {$FILE} ($oPps->{Data});
             }
-            $FILE->print(
+            print {$FILE} (
                         "\x00" x
                         ($rhInfo->{_BIG_BLOCK_SIZE} -
                             ($oPps->{Size} % $rhInfo->{_BIG_BLOCK_SIZE}))
@@ -452,7 +460,7 @@ sub _savePps($$$)
 #3. Adjust for Block
   my $iCnt = scalar(@$raList);
   my $iBCnt = $rhInfo->{_BIG_BLOCK_SIZE} / $rhInfo->{_PPS_SIZE};
-  $FILE->print("\x00" x (($iBCnt - ($iCnt % $iBCnt)) * $rhInfo->{_PPS_SIZE}))
+  print {$FILE} ("\x00" x (($iBCnt - ($iCnt % $iBCnt)) * $rhInfo->{_PPS_SIZE}))
         if($iCnt % $iBCnt);
   return int($iCnt / $iBCnt) + (($iCnt % $iBCnt)? 1: 0);
 }
@@ -653,31 +661,31 @@ sub _saveBbd($$$$)
 #1.1 Set for SBD
   if($iSbdSize > 0) {
     for ($i = 0; $i<($iSbdSize-1); $i++) {
-      $FILE->print(pack("V", $i+1));
+      print {$FILE} (pack("V", $i+1));
     }
-    $FILE->print(pack("V", -2));
+    print {$FILE} (pack("V", -2));
   }
 #1.2 Set for B
   for ($i = 0; $i<($iBsize-1); $i++) {
-      $FILE->print(pack("V", $i+$iSbdSize+1));
+      print {$FILE} (pack("V", $i+$iSbdSize+1));
   }
-  $FILE->print(pack("V", -2));
+  print {$FILE} (pack("V", -2));
 
 #1.3 Set for PPS
   for ($i = 0; $i<($iPpsCnt-1); $i++) {
-      $FILE->print(pack("V", $i+$iSbdSize+$iBsize+1));
+      print {$FILE} (pack("V", $i+$iSbdSize+$iBsize+1));
   }
-  $FILE->print(pack("V", -2));
+  print {$FILE} (pack("V", -2));
 #1.4 Set for BBD itself ( 0xFFFFFFFD : BBD)
   for($i=0; $i<$iBdCnt;$i++) {
-    $FILE->print(pack("V", 0xFFFFFFFD));
+    print {$FILE} (pack("V", 0xFFFFFFFD));
   }
 #1.5 Set for ExtraBDList
   for($i=0; $i<$iBdExL;$i++) {
-    $FILE->print(pack("V", 0xFFFFFFFC));
+    print {$FILE} (pack("V", 0xFFFFFFFC));
   }
 #1.6 Adjust for Block
-  $FILE->print(pack("V", -1) x ($iBbCnt - (($iAllW + $iBdCnt) % $iBbCnt)))
+  print {$FILE} (pack("V", -1) x ($iBbCnt - (($iAllW + $iBdCnt) % $iBbCnt)))
                 if(($iAllW + $iBdCnt) % $iBbCnt);
 #2.Extra BDList
   if($iBdCnt > $i1stBdL)  {
@@ -687,13 +695,13 @@ sub _saveBbd($$$$)
       if($iN>=($iBbCnt-1)) {
           $iN = 0;
           $iNb++;
-          $FILE->print(pack("V", $iAll+$iBdCnt+$iNb));
+          print {$FILE} (pack("V", $iAll+$iBdCnt+$iNb));
       }
-      $FILE->print(pack("V", $iBsize+$iSbdSize+$iPpsCnt+$i));
+      print {$FILE} (pack("V", $iBsize+$iSbdSize+$iPpsCnt+$i));
     }
-    $FILE->print(pack("V", -1) x (($iBbCnt-1) - (($iBdCnt-$i1stBdL) % ($iBbCnt-1))))
+    print {$FILE} (pack("V", -1) x (($iBbCnt-1) - (($iBdCnt-$i1stBdL) % ($iBbCnt-1))))
         if(($iBdCnt-$i1stBdL) % ($iBbCnt-1));
-    $FILE->print(pack("V", -2));
+    print {$FILE} (pack("V", -2));
   }
 }
 
@@ -708,7 +716,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.11';
+$VERSION = '0.13';
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -778,7 +786,7 @@ sub newFile ($$;$) {
 sub append ($$) {
     my($oSelf, $sData) = @_;
     if($oSelf->{_PPS_FILE}) {
-        $oSelf->{_PPS_FILE}->print($sData);
+        print {$oSelf->{_PPS_FILE}} $sData;
     }
     else {
         $oSelf->{Data} .= $sData;
@@ -796,7 +804,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.11';
+$VERSION = '0.13';
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -824,7 +832,7 @@ use IO::File;
 use IO::Scalar;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = '0.11';
+$VERSION = '0.13';
 sub _getPpsSearch($$$$$;$);
 sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------
@@ -896,25 +904,27 @@ sub getNthPps($$;$)
 sub _initParse($) {
   my($sFile)=@_;
   my $oIo;
-#1. $sFile is Ref of scalar
+  #1. $sFile is Ref of scalar
   if(ref($sFile) eq 'SCALAR') {
     $oIo = new IO::Scalar;
     $oIo->open($sFile);
   }
-#2. $sFile is a IO::Handle object
+  #2. $sFile is a IO::Handle object
   elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
     $oIo = $sFile;
     binmode($oIo);
   }
-#3. $sFile is a simple filename string
+  #3. $sFile is a simple filename string
   elsif(!ref($sFile)) {
     $oIo = new IO::File;
     $oIo->open("<$sFile") || return undef;
     binmode($oIo);
   }
-#4. Others
+  #4 Assume that if $sFile is a ref then it is a valid filehandle
   else {
-    return undef;
+    $oIo = $sFile;
+    # Not all filehandles support binmode() so try it in an eval.
+    eval{ binmode $oIo };
   }
   return _getHeaderInfo($oIo);
 }
@@ -1419,7 +1429,7 @@ __END__
 
 =head1 NAME
 
-OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.11)
+OLE::Storage_Lite - Simple Class for OLE document interface.
 
 =head1 SYNOPSIS
 

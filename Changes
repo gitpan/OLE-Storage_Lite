@@ -1,8 +1,14 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.13  Sun Aug 1  13:00:00 2004
+
+    - Allowed use of user defined filehandles. This should make the
+      module work with mod_perl and some other applications.
+      https://rt.cpan.org/NoAuth/Bug.html?id=7168
+
 0.12  Thu May 28  23:00:00 2004
 
-    - Applied patch to fix problems when creating very large files. 
+    - Applied patch to fix problems when creating very large files.
       Thanks James Rouzier.
 
     - Applied patch to allow IO::Scalar as a data destination.
