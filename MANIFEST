@@ -5,4 +5,6 @@ README
 Storage_Lite.pm
 sample/smplls.pl
 sample/smpsv.pl
+sample/smpadd.pl
+sample/test.xls
 test.pl

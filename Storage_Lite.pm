@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = 0.04;
+$VERSION = 0.05;
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -80,6 +80,7 @@ sub _makeSmallData($$$) {
   foreach my $oPps (@$aList) {
 #1. Make SBD, small data string
   if($oPps->{Type}==OLE::Storage_Lite::PpsType_File()) {
+    next if($oPps->{Size}<=0);
     if($oPps->{Size} < $rhInfo->{_SMALL_SIZE}) {
 	  my $iSmbCnt = int($oPps->{Size} / $rhInfo->{_SMALL_BLOCK_SIZE})
 					+ (($oPps->{Size} % $rhInfo->{_SMALL_BLOCK_SIZE})? 1: 0);
@@ -149,7 +150,9 @@ use strict;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.04;
+$VERSION = 0.05;
+sub _savePpsSetPnt($$$);
+sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::Root)
 #------------------------------------------------------------------------------
@@ -518,7 +521,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.04;
+$VERSION = 0.05;
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -551,7 +554,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = 0.04;
+$VERSION = 0.05;
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -577,7 +580,9 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = 0.04;
+$VERSION = 0.05;
+sub _getPpsSearch($$$$);
+sub _getPpsTree($$$);
 #------------------------------------------------------------------------------
 # Const for OLE::Storage_Lite
 #------------------------------------------------------------------------------
@@ -1131,7 +1136,7 @@ __END__
 
 =head1 NAME
 
-OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.04)
+OLE::Storage_Lite - Simple Class for OLE document interface. (Version: 0.05)
 
 =head1 SYNOPSIS
 
