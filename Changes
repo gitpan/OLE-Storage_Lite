@@ -1,5 +1,13 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.15  Sat Dec 1  18:00:00 2007
+
+    - Fix for OLE::Storage_Lite performance degradation caused
+      by Math::BigInt degradation.
+      http://rt.cpan.org/Public/Bug/Display.html?id=31006
+      Thanks Jonathan Kamens.
+
+
 0.14  Mon Nov 8  14:00:00 2004
 
     - Return filehandle close() value to caller. Spotted in

@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -173,7 +173,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.14';
+$VERSION = '0.15';
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -712,7 +712,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.14';
+$VERSION = '0.15';
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -800,7 +800,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.14';
+$VERSION = '0.15';
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -827,7 +827,7 @@ use strict;
 use IO::File;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = '0.14';
+$VERSION = '0.15';
 sub _getPpsSearch($$$$$;$);
 sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------
@@ -1326,7 +1326,13 @@ sub OLEDate2Local($)
   my $iHSec = $iBigDt % 10000000;
   $iBigDt /= 10000000;
   my $iBigDay = int($iBigDt / (24*3600)) + 1;
+  if ($iBigDay->numify eq $iBigDay) {
+      $iBigDay = $iBigDay->numify;
+  }
   my $iTime = int($iBigDt % (24*3600));
+  if ($iTime->numify eq $iTime) {
+      $iTime = $iTime->numify;
+  }
 #2. Year->Day(1601/1/2?)
   $iDt = $iBigDay;
   $iYear = 1601;
