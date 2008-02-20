@@ -1,6 +1,6 @@
 name:               OLE-Storage_Lite
 abstract:           Read and write OLE storage files.
-version:            0.15
+version:            0.16
 version_from:       Storage_Lite.pm
 installdirs:        site
 requires:

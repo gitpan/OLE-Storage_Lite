@@ -9,7 +9,7 @@ WriteMakefile(
     'VERSION_FROM'  => 'Storage_Lite.pm',
     'NEEDS_LINKING' => 0,
     'PREREQ_PM'     => {},
-    'dist'          => {COMPRESS => 'gzip -best', SUFFIX => 'gz'},
+    'dist'          => {COMPRESS => 'gzip --best', SUFFIX => 'gz'},
 
 
 );

@@ -14,7 +14,7 @@ use Math::BigInt;
 #use OLE::Storage_Lite;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -173,7 +173,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.15';
+$VERSION = '0.16';
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -226,7 +226,8 @@ sub save($$;$$) {
 
   #1.2 $sFile is a IO::Handle object
   elsif(UNIVERSAL::isa($sFile, 'IO::Handle')) {
-    binmode($sFile);
+    # Not all filehandles support binmode() so try it in an eval.
+    eval{ binmode $sFile };
     $rhInfo->{_FILEH_} = $sFile;
   }
   #1.3 $sFile is a simple filename string
@@ -337,7 +338,7 @@ sub _saveHeader($$$$$) {
 
 #0. Calculate Basic Setting
   my $iBlCnt = $rhInfo->{_BIG_BLOCK_SIZE} / OLE::Storage_Lite::LongIntSize();
-  my $i1stBdL = ($rhInfo->{_BIG_BLOCK_SIZE} - 0x4C) / OLE::Storage_Lite::LongIntSize();
+  my $i1stBdL = int(($rhInfo->{_BIG_BLOCK_SIZE} - 0x4C) / OLE::Storage_Lite::LongIntSize());
   my $i1stBdMax = $i1stBdL * $iBlCnt  - $i1stBdL;
   my $iBdExL = 0;
   my $iAll = $iBBcnt + $iPPScnt + $iSBDcnt;
@@ -630,7 +631,7 @@ sub _saveBbd($$$$)
 #0. Calculate Basic Setting
   my $iBbCnt = $rhInfo->{_BIG_BLOCK_SIZE} / OLE::Storage_Lite::LongIntSize();
   my $iBlCnt = $iBbCnt - 1;
-  my $i1stBdL = ($rhInfo->{_BIG_BLOCK_SIZE} - 0x4C) / OLE::Storage_Lite::LongIntSize();
+  my $i1stBdL = int(($rhInfo->{_BIG_BLOCK_SIZE} - 0x4C) / OLE::Storage_Lite::LongIntSize());
   my $i1stBdMax = $i1stBdL * $iBbCnt  - $i1stBdL;
   my $iBdExL = 0;
   my $iAll = $iBsize + $iPpsCnt + $iSbdSize;
@@ -712,7 +713,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.15';
+$VERSION = '0.16';
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -800,7 +801,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.15';
+$VERSION = '0.16';
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -827,7 +828,7 @@ use strict;
 use IO::File;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = '0.15';
+$VERSION = '0.16';
 sub _getPpsSearch($$$$$;$);
 sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------
@@ -1435,91 +1436,96 @@ OLE::Storage_Lite - Simple Class for OLE document interface.
 
 =head1 SYNOPSIS
 
-  use OLE::Storage_Lite;
-  use strict;
-#1. Initialize
-#1.1 From File
-  my $oOl = OLE::Storage_Lite->new("some.xls");
-#1.2 From Scalar
-  my $oOl = OLE::Storage_Lite->new(\$sBuff);
-#1.3 From IO::Handle object
-  use IO::File;
-  my $oIo = new IO::File;
-  $oIo->open("<iofile.xls");
-  binmode($oIo);
-  my $oOl = OLE::Storage_Lite->new($oFile);
-#2. Read and Get Data
-  my $oPps = $oOl->getPpsTree(1);
-#3.Save Data
-#3.1 As File
-  $oPps->save("kaba.xls"); #kaba.xls
-  $oPps->save('-');        #STDOUT
-#3.2 As Scalar
-  $oPps->save(\$sBuff);
-#3.3 As IO::Handle object
-  my $oIo = new IO::File;
-  $oIo->open(">iofile.xls");
-  bimode($oIo);
-  $oPps->save($oIo);
+    use OLE::Storage_Lite;
+
+    # Initialize.
+
+    # From a file
+    my $oOl = OLE::Storage_Lite->new("some.xls");
+
+    # From a filehandle object
+    use IO::File;
+    my $oIo = new IO::File;
+    $oIo->open("<iofile.xls");
+    binmode($oIo);
+    my $oOl = OLE::Storage_Lite->new($oFile);
+
+    # Read data
+    my $oPps = $oOl->getPpsTree(1);
+
+    # Save Data
+    # To a File
+    $oPps->save("kaba.xls"); #kaba.xls
+    $oPps->save('-');        #STDOUT
+
+    # To a filehandle object
+    my $oIo = new IO::File;
+    $oIo->open(">iofile.xls");
+    bimode($oIo);
+    $oPps->save($oIo);
+
 
 =head1 DESCRIPTION
 
 OLE::Storage_Lite allows you to read and write an OLE structured file.
-Please refer OLE::Storage by Martin Schwartz.
 
-OLE::Storage_Lite::PPS is a class representing PPS.
-OLE::Storage_Lite::PPS::Root, OLE::Storage_Lite::PPS::File and OLE::Storage_Lite::PPS::Dir
+OLE::Storage_Lite::PPS is a class representing PPS. OLE::Storage_Lite::PPS::Root, OLE::Storage_Lite::PPS::File and OLE::Storage_Lite::PPS::Dir
 are subclasses of OLE::Storage_Lite::PPS.
 
 
-=head2 new
-
-I<$oOle> = OLE::Storage_Lite->new(I<$sFile>);
+=head2 new()
 
 Constructor.
-Creates a OLE::Storage_Lite object for I<$sFile>.
-I<$sFile> must be a correct file name.
 
-From 0.06, I<$sFile> may be a scalar reference of file contents (ex. \$sBuff)
- and IO::Handle object (including IO::File etc).
+    $oOle = OLE::Storage_Lite->new($sFile);
 
-=head2 getPpsTree
+Creates a OLE::Storage_Lite object for C<$sFile>. C<$sFile> must be a correct file name.
 
-I<$oPpsRoot> = I<oOle>->getPpsTree([$bData]);
+The C<new()> constructor also accepts a valid filehandle. Remember to C<binmode()> the filehandle first.
 
-returns PPS as OLE::Storage_Lite::PPS::Root object.
+
+=head2 getPpsTree()
+
+    $oPpsRoot = $oOle->getPpsTree([$bData]);
+
+Returns PPS as an OLE::Storage_Lite::PPS::Root object.
 Other PPS objects will be included as its children.
-if I<$bData> is true, the objects will have data in the file.
 
-=head2 getPpsSearch
+If C<$bData> is true, the objects will have data in the file.
 
-I<$oPpsRoot> = I<oOle>->getPpsTree($raName [, $bData][, $iCase] );
 
-returns PPSs as OLE::Storage_Lite::PPS objects that has the name specified in
-I<$raName> array.
-if I<$bData> is true, the objects will have data in the file.
-if I<$iCase> is true, search with case insensitive.
+=head2 getPpsSearch()
 
-=head2 getNthPps
+    $oPpsRoot = $oOle->getPpsTree($raName [, $bData][, $iCase] );
 
-I<$oPpsRoot> = I<oOle>->getNthPps($iNth [, $bData]);
+Returns PPSs as OLE::Storage_Lite::PPS objects that has the name specified in C<$raName> array.
 
-returns PPS as OLE::Storage_Lite::PPS object specified number(I<$iNth>).
-if I<$bData> is true, the objects will have data in the file.
+If C<$bData> is true, the objects will have data in the file.
+If C<$iCase> is true, search is case insensitive.
 
-=head2 Asc2Ucs
 
-I<$sUcs2> = OLE::Storage_Lite::Asc2Ucs(I<$sAsc>);
+=head2 getNthPps()
 
-Utility function.
-Just adding 0x00 afeter every characters in I<$sAsc>.
+    $oPpsRoot = $oOle->getNthPps($iNth [, $bData]);
 
-=head2 Ucs2Asc
+Returns PPS as C<OLE::Storage_Lite::PPS> object specified number C<$iNth>.
 
-I<$sAsc> = OLE::Storage_Lite::Ucs2Asc(I<$sUcs2>);
+If C<$bData> is true, the objects will have data in the file.
 
-Utility function.
-Just deletes 0x00 afeter words in I<$sUcs>.
+
+=head2 Asc2Ucs()
+
+    $sUcs2 = OLE::Storage_Lite::Asc2Ucs($sAsc>);
+
+Utility function. Just adds 0x00 after every characters in C<$sAsc>.
+
+
+=head2 Ucs2Asc()
+
+    $sAsc = OLE::Storage_Lite::Ucs2Asc($sUcs2);
+
+Utility function. Just deletes 0x00 after words in C<$sUcs>.
+
 
 =head1 OLE::Storage_Lite::PPS
 
@@ -1529,112 +1535,116 @@ OLE::Storage_Lite::PPS has these properties:
 
 =item No
 
-order number in saving.
+Order number in saving.
 
 =item Name
 
-its name in UCS2 (a.k.a Unicode).
+Its name in UCS2 (a.k.a Unicode).
 
 =item Type
 
-its type (1:Dir, 2:File (Data), 5: Root)
+Its type (1:Dir, 2:File (Data), 5: Root)
 
 =item PrevPps
 
-previous pps (as No)
+Previous pps (as No)
 
 =item NextPps
 
-next pps (as No)
+Next pps (as No)
 
 =item DirPps
 
-dir pps (as No).
+Dir pps (as No).
 
 =item Time1st
 
-timestamp1st in array ref as similar fomat of localtime.
+Timestamp 1st in array ref as similar fomat of localtime.
 
 =item Time2nd
 
-timestamp2nd in array ref as similar fomat of localtime.
+Timestamp 2nd in array ref as similar fomat of localtime.
 
 =item StartBlock
 
-start block number
+Start block number
 
 =item Size
 
-size of the pps
+Size of the pps
 
 =item Data
 
-its data
+Its data
 
 =item Child
 
-its child PPSs in array ref
+Its child PPSs in array ref
 
 =back
+
 
 =head1 OLE::Storage_Lite::PPS::Root
 
 OLE::Storage_Lite::PPS::Root has 2 methods.
 
-=head2 new
+=head2 new()
 
-I<$oRoot> = OLE::Storage_Lite::PPS::Root->new(
-                    I<$raTime1st>,
-                    I<$raTime2nd>,
-                    I<$raChild>);
+    $oRoot = OLE::Storage_Lite::PPS::Root->new(
+                    $raTime1st,
+                    $raTime2nd,
+                    $raChild);
+
 
 Constructor.
 
-I<$raTime1st>, I<$raTime2nd> is a array ref as
-($iSec, $iMin, $iHour, $iDay, $iMon, $iYear, $iHSec).
+C<$raTime1st>, C<$raTime2nd> are array refs with ($iSec, $iMin, $iHour, $iDay, $iMon, $iYear, $iHSec).
 $iSec means seconds, $iMin means minutes. $iHour means hours.
 $iDay means day. $iMon is month -1. $iYear is year - 1900.
 $iHSec is seconds/10,000,000 in Math::BigInt.
 
-I<$raChild> is a array ref of children PPSs.
+C<$raChild> is a array ref of children PPSs.
 
-=head2 save
 
-I<$oRoot> = $o<oRoot>->save(
-                    I<$sFile>,
-                    I<$bNoAs>);
+=head2 save()
 
-Saves infomations into I<$sFile>. I<$sFile> is '-', this will use STDOUT.
+    $oRoot = $oRoot>->save(
+                    $sFile,
+                    $bNoAs);
 
-From 0.06, I<$sFile> may be a scalar reference of file contents (ex. \$sBuff)
- and IO::Handle object (including IO::File etc).
 
-if I<$bNoAs> is defined, this function will use the No of PPSs for saving order.
-if I<$bNoAs> is undefined, this will calculate PPS saving order.
+Saves information into C<$sFile>. If C<$sFile> is '-', this will use STDOUT.
+
+The C<new()> constructor also accepts a valid filehandle. Remember to C<binmode()> the filehandle first.
+
+If C<$bNoAs> is defined, this function will use the No of PPSs for saving order.
+If C<$bNoAs> is undefined, this will calculate PPS saving order.
+
 
 =head1 OLE::Storage_Lite::PPS::Dir
 
 OLE::Storage_Lite::PPS::Dir has 1 method.
 
-=head2 new
+=head2 new()
 
-I<$oRoot> = OLE::Storage_Lite::PPS::Dir->new(
-                    I<$sName>
-                  [, I<$raTime1st>]
-                  [, I<$raTime2nd>]
-                  [, I<$raChild>]);
+    $oRoot = OLE::Storage_Lite::PPS::Dir->new(
+                    $sName,
+                  [, $raTime1st]
+                  [, $raTime2nd]
+                  [, $raChild>]);
+
 
 Constructor.
 
-I<$sName> is a name of the PPS.
+C<$sName> is a name of the PPS.
 
-I<$raTime1st>, I<$raTime2nd> is a array ref as
+C<$raTime1st>, C<$raTime2nd> is a array ref as
 ($iSec, $iMin, $iHour, $iDay, $iMon, $iYear, $iHSec).
 $iSec means seconds, $iMin means minutes. $iHour means hours.
 $iDay means day. $iMon is month -1. $iYear is year - 1900.
 $iHSec is seconds/10,000,000 in Math::BigInt.
 
-I<$raChild> is a array ref of children PPSs.
+C<$raChild> is a array ref of children PPSs.
 
 
 =head1 OLE::Storage_Lite::PPS::File
@@ -1643,41 +1653,50 @@ OLE::Storage_Lite::PPS::File has 3 method.
 
 =head2 new
 
-I<$oRoot> = OLE::Storage_Lite::PPS::File->new(I<$sName>, I<$sData>);
+    $oRoot = OLE::Storage_Lite::PPS::File->new($sName, $sData);
 
-I<$sName> is name of the PPS.
+C<$sName> is name of the PPS.
 
-I<$sData> is data of the PPS.
+C<$sData> is data of the PPS.
 
-=head2 newFile
 
-I<$oRoot> = OLE::Storage_Lite::PPS::File->newFile(I<$sName>, I<$sFile>);
+=head2 newFile()
+
+    $oRoot = OLE::Storage_Lite::PPS::File->newFile($sName, $sFile);
 
 This function makes to use file handle for geting and storing data.
 
-I<$sName> is name of the PPS.
+C<$sName> is name of the PPS.
 
-If I<$sFile> is scalar, it assumes that is a filename.
-If I<$sFile> is an IO::Handle object, it uses that specified handle.
-If I<$sFile> is undef or '', it uses temporary file.
+If C<$sFile> is scalar, it assumes that is a filename.
+If C<$sFile> is an IO::Handle object, it uses that specified handle.
+If C<$sFile> is undef or '', it uses temporary file.
 
-CAUTION: Take care I<$sFile> will be updated by I<append> method.
+CAUTION: Take care C<$sFile> will be updated by C<append> method.
 So if you want to use IO::Handle and append a data to it,
 you should open the handle with "r+".
 
-=head2 append
 
-I<$oRoot> = $oPps->append($sData);
+=head2 append()
+
+    $oRoot = $oPps->append($sData);
 
 appends specified data to that PPS.
 
-I<$sData> is appending data for that PPS.
+C<$sData> is appending data for that PPS.
+
 
 =head1 CAUTION
 
 A saved file with VBA (a.k.a Macros) by this module will not work correctly.
 However modules can get the same information from the file,
 the file occurs a error in application(Word, Excel ...).
+
+
+=head1 DEPRECATED FEATURES
+
+Older version of C<OLE::Storage_Lite> autovivified a scalar ref in the C<new()> constructors into a scalar filehandle. This functionality is still there for backwards compatibility but it is highly recommended that you do not use it. Instead create a filehandle (scalar or otherwise) and pass that in.
+
 
 =head1 COPYRIGHT
 
@@ -1687,18 +1706,26 @@ All rights reserved.
 You may distribute under the terms of either the GNU General Public
 License or the Artistic License, as specified in the Perl README file.
 
+
 =head1 ACKNOWLEDGEMENTS
 
 First of all, I would like to acknowledge to Martin Schwartz and his module OLE::Storage.
+
 
 =head1 AUTHOR
 
 Kawai Takanori kwitknr@cpan.org
 
-Currently maintained by John McNamara jmcnamara@cpan.org
+This module is currently maintained by John McNamara jmcnamara@cpan.org
+
 
 =head1 SEE ALSO
 
 OLE::Storage
+
+Documentation for the OLE Compound document has been released by Microsoft under the I<Open Specification Promise>. See http://www.microsoft.com/interop/docs/supportingtechnologies.mspx
+
+The Digital Imaging Group have also detailed the OLE format in the JPEG2000 specification: see Appendix A of http://www.i3a.org/pdf/wg1n1017.pdf
+
 
 =cut
