@@ -1,10 +1,10 @@
-name:               OLE-Storage_Lite
-abstract:           Read and write OLE storage files.
-version:            0.16
-version_from:       Storage_Lite.pm
-installdirs:        site
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         OLE-Storage_Lite
+version:      0.17
+version_from: lib/OLE/Storage_Lite.pm
+installdirs:  site
 requires:
 
-distribution_type:  module
-license:            perl
-generated_by:       hand
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.30

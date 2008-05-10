@@ -1,12 +1,20 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+0.17  Tue May 10  00:00:00 2008
+
+    - Rewrote internal date handling functions to avoid
+      Math::BigInt due to further problems introduced by the
+      patch in 0.15.
+      http://rt.cpan.org/Public/Bug/Display.html?id=34567
+      Reported by Andrew Benham.
+
 0.16  Tue Feb 19  23:00:00 2008
 
     - Workaround for HP-UX Perl 5.6 integer bug.
       Thanks Bob Rose.
 
     - Fix for binmode() on IO::Scalar.
-      REported by Tobias Tacke:
+      Reported by Tobias Tacke:
       http://rt.cpan.org/Public/Bug/Display.html?id=32603
 
 
