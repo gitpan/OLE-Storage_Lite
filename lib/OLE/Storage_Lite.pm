@@ -12,7 +12,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
-$VERSION = '0.17';
+$VERSION = '0.18';
 
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS)
@@ -171,7 +171,7 @@ use IO::Handle;
 use Fcntl;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.17';
+$VERSION = '0.18';
 sub _savePpsSetPnt($$$);
 sub _savePpsSetPnt2($$$);
 #------------------------------------------------------------------------------
@@ -711,7 +711,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.17';
+$VERSION = '0.18';
 #------------------------------------------------------------------------------
 # new (OLE::Storage_Lite::PPS::File)
 #------------------------------------------------------------------------------
@@ -799,7 +799,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(OLE::Storage_Lite::PPS Exporter);
-$VERSION = '0.17';
+$VERSION = '0.18';
 sub new ($$;$$$) {
     my($sClass, $sName, $raTime1st, $raTime2nd, $raChild) = @_;
     OLE::Storage_Lite::PPS::_new(
@@ -829,7 +829,7 @@ use Time::Local 'timegm';
 
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
-$VERSION = '0.16';
+$VERSION = '0.18';
 sub _getPpsSearch($$$$$;$);
 sub _getPpsTree($$$;$);
 #------------------------------------------------------------------------------

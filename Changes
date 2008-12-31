@@ -1,5 +1,11 @@
 Revision history for Perl extension OLE::Storage_Lite.
 
+
+0.18  Wed Dec 31  00:00:00 2008
+
+    - Fixed internal version numbers.
+
+
 0.17  Tue May 10  00:00:00 2008
 
     - Rewrote internal date handling functions to avoid
@@ -7,6 +13,7 @@ Revision history for Perl extension OLE::Storage_Lite.
       patch in 0.15.
       http://rt.cpan.org/Public/Bug/Display.html?id=34567
       Reported by Andrew Benham.
+
 
 0.16  Tue Feb 19  23:00:00 2008
 
